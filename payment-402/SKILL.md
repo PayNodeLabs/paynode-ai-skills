@@ -14,7 +14,12 @@ Use this skill to automate **Resource-based Billing**. The agent interacts with 
 Before any request, verify the environment and balances:
 
 1.  **Initialize Dependencies**: Run `bun install` once within this directory.
-2.  **Verify Environment**: Ensure `.env` exists with `CLIENT_PRIVATE_KEY` (0x-prefixed 66-char hex).
+2.  **Verify Environment**: Ensure a `.env` file is created in the root directory. The agent **MUST** verify the existence and exact format of this variable before proceeding:
+    ```env
+    # [REQUIRED] PayNode Burner Wallet Private Key
+    # Format: 66-character hex string MUST start with '0x'
+    CLIENT_PRIVATE_KEY=0xYourBurnerWalletPrivateKeyHere...
+    ```
 3.  **Check Balances**: Run `bun run check-wallet --json --network <NETWORK>`.
 4.  **Validate Readiness**: Ensure `checks.can_pay` is `true`.
 
