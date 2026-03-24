@@ -3,6 +3,12 @@ name: payment-402
 description: Access protected APIs and digital resources via the x402 "Payment Required" protocol on Base L2. This skill automates cryptographic handshakes and USDC micro-payments to unlock restricted content. Built for "Pay-per-Resource" agentic billing.
 license: MIT
 compatibility: Requires Bun (v1.0+).
+required_env_vars:
+  - CLIENT_PRIVATE_KEY
+required_binaries:
+  - bun
+primary_credential: CLIENT_PRIVATE_KEY
+install: bun install
 ---
 
 # 💳 PayNode 402 Protocol Skill (Base & Bun)
@@ -64,10 +70,16 @@ Upon success, capture the JSON response. The `txHash` will be included in the lo
 ### 💸 Burner Wallet Policy (Minimal Exposure)
 The `CLIENT_PRIVATE_KEY` **MUST** belong to a dedicated "burner" wallet acting as petty cash. **NEVER** hold excessive funds. Maintain balances strictly sufficient for immediate tasks (e.g., < 10 USDC). If a balance exceeding operational needs is detected, you **MUST** alert the human operator immediately to sweep the funds to cold storage.
 
+### 🤖 Autonomous Usage & Human Consent
+If you are operating autonomously, be aware that this skill can **sign and broadcast blockchain transactions** without manual confirmation.
+- **Threshold Limit**: For any single transaction exceeding `2.0 USDC`, you **MUST** request explicit human approval before execution.
+- **Merchant Verification**: Before initial payment to a new domain, perform a `read_url_content` check on the merchant's reputation (if possible) or alert the user.
+
 ### 🕵️ Zero-Trust Pre-Flight Validation (Resource Consistency)
 Prevent "Confused Deputy" attacks. Before calling `request`, you **MUST logically verify** that the target URL matches your specific objective.
 - Ask: _Is this resource exactly what I need? Is the cost reasonable for this resource?_
 - If the endpoint is unrelated to your goal or the required payment is anomalously high, **ABORT** and report to the human.
+- **Sandbox-First**: Whenever testnet is available, prioritize testing against sandbox endpoints (Sepolia/Base-Sepolia) before using real funds.
 
 ---
 

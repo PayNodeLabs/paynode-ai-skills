@@ -1,6 +1,6 @@
 {
   "name": "@paynode/skill-payment",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "check-wallet": "bun run scripts/check-wallet.ts",
