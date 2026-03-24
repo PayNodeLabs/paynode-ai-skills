@@ -6,7 +6,7 @@ Collect and manage standardized AI skills for the PayNode ecosystem. These skill
 
 | Skill | Name                     | Description                                                                                          |
 | :---- | :----------------------- | :--------------------------------------------------------------------------------------------------- |
-| 💳    | [**payment**](./payment) | Access protected resources via the x402 protocol on Base (automated micro-payments, balance checks). |
+| 💳    | [**payment-402**](./payment-402) | Access protected resources via the x402 protocol on Base (automated micro-payments, balance checks). |
 
 ## General Skill Specification
 
@@ -23,7 +23,7 @@ Skills are written in TypeScript and designed to run with [Bun](https://bun.sh/)
 
 ```bash
 # Enter a skill directory
-cd payment
+cd payment-402
 
 # Install dependencies
 bun install
