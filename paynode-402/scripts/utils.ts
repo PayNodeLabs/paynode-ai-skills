@@ -19,7 +19,7 @@ if (fs.existsSync('.env')) {
 /**
  * Skill version for JSON output metadata. 
  */
-export const SKILL_VERSION = '2.2.0';
+export const SKILL_VERSION = '2.2.1';
 
 /**
  * Network configuration object.
