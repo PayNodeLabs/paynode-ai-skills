@@ -6,7 +6,7 @@ Collect and manage standardized AI skills for the PayNode ecosystem. These skill
 
 | Skill | Name                     | Description                                                                                          |
 | :---- | :----------------------- | :--------------------------------------------------------------------------------------------------- |
-| 💳    | [**payment-402**](./payment-402) | Access protected resources via the x402 protocol on Base (automated micro-payments, balance checks). |
+| 💳    | [**payment-402**](./paynode-402) | Access protected resources via the x402 protocol on Base (automated micro-payments, balance checks). |
 
 ## General Skill Specification
 
