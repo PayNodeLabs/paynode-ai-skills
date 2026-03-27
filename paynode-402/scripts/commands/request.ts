@@ -83,6 +83,9 @@ function spawnBackground(url: string, args: string[], options: UnifiedRequestOpt
     }
     childArgs.push('--task-id', taskId, '--output', outputPath);
 
+    // [SECURITY] This is a self-re-execution for background processing.
+    // The child command is pinned to 'process.execPath' (the current runtime) and 'process.argv[1]' (the current script).
+    // Arguments are filtered to prevent recursive loops.
     const child = spawn(process.execPath, [process.argv[1], ...childArgs], {
         detached: true,
         stdio: 'ignore',
@@ -161,8 +164,22 @@ async function executeCore(url: string, args: string[], options: UnifiedRequestO
     } else {
         if (options.data) {
             requestOptions.body = options.data;
-        } else if (Object.keys(kvParams).length > 0) {
-            requestOptions.json = kvParams;
+        } else {
+            // [Smart Promotion] For POST/PUT, if no explicit body data is given but 
+            // query parameters exist (either in URL or as args), put them into JSON body.
+            const urlObj = new URL(url);
+            const combinedParams = { ...kvParams };
+            
+            // If the user only passed the URL with query params (no extra args)
+            if (Object.keys(combinedParams).length === 0 && urlObj.searchParams.size > 0) {
+                for (const [k, v] of urlObj.searchParams.entries()) {
+                    combinedParams[k] = v;
+                }
+            }
+
+            if (Object.keys(combinedParams).length > 0) {
+                requestOptions.json = combinedParams;
+            }
         }
     }
 

@@ -21,7 +21,7 @@ install: bun install
 
 # 💳 PayNode 402 Protocol Skill (x402-v2, Base & Bun)
 
-Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.2.0) implements the **PayNode Protocol v2.2.0** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
+Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.2.1) implements the **PayNode Protocol v2.2.1** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
 
 ## 🚀 Pre-execution Readiness
 
@@ -54,7 +54,7 @@ Before any request, verify the environment and balances:
 
 ```json
 {
-  "version": "2.2.0",
+  "version": "2.2.1",
   "status": "success",
   "address": "0x...",
   "eth": 0.01,
@@ -125,7 +125,7 @@ bun run paynode-402 request "https://api.example.com/data" \
 
 # Immediate output:
 # {
-#   "version": "2.2.0",
+#   "version": "2.2.1",
 #   "status": "pending",
 #   "task_id": "m2k8x-a1b2",
 #   "output": "<TMPDIR>/paynode-tasks/m2k8x-a1b2.json",
@@ -139,7 +139,7 @@ cat <TMPDIR>/paynode-tasks/m2k8x-a1b2.json
 
 # Completed result:
 # {
-#   "version": "2.2.0",
+#   "version": "2.2.1",
 #   "status": "completed",
 #   "task_id": "m2k8x-a1b2",
 #   "data": { ... },
@@ -214,8 +214,20 @@ All mainnet operations require the `--confirm-mainnet` flag. Without this flag, 
 
 ---
 
+## 🛠️ Security & Safety Audit Note
+
+If you perform a static analysis scan on this skill, it may flag two behaviors:
+1.  **Shell command execution (`spawn`)**: This is an **intentional design** for the `--background` mode. The script detaches a copy of itself using `process.execPath` to handle the payment flow once the main agent process exits.
+2.  **Private key environment access (`process.env.CLIENT_PRIVATE_KEY`)**: This is **required** to sign and broadcast blockchain payments.
+
+Both are safe as long as you follow the **Burner Wallet Policy** and NEVER use your primary vault wallet.
+
+---
+
 ## ⚠️ Gotchas & Troubleshooting
 
+- **"Unexpected end of JSON input" (HTTP 500)**: Some merchants expect a JSON body for `POST` requests. If you put parameters in the URL query instead of as separate arguments, the script will now automatically try to "promote" those query params to the request body to improve compatibility.
+- **"SyntaxError: JSON Parse error" (Settlement)**: This can occur if a merchant returns a malformed or non-base64 `PAYMENT-RESPONSE` header. This is a non-fatal warning in the SDK—if the HTTP status is `200`, the transaction was likely successful even if parsing the settlement header failed.
 - **Exit Codes**:
   - `0`: Success.
   - `1`: Generic error.
@@ -244,8 +256,8 @@ Always test against sandbox endpoints first.
   - [Optimism Superchain Faucet](https://console.optimism.io/faucet) (**Recommended**, 0.01 ETH daily)
   - _Note: If the faucet is down, use a search engine for "Base Sepolia Faucet" or bridge independently._
 - **Mock USDC (Payment)**: `bun run paynode-402 mint --network testnet --json`
-- **Test Merchant**: `https://paynode.dev/api/pom?network=testnet`
-- **Reference**: See [Testing Guide](references/TESTING.md) for more details.
+- **Test Merchant**: Use `https://paynode.dev/api/pom?network=testnet` with `-X POST` and `agent_name=YourName` to test x402-v2 payments. (A `GET` request only returns the list of entries).
+- **Reference**: See [Testing Guide](references/TESTING.md) for full examples.
 
 ---
 

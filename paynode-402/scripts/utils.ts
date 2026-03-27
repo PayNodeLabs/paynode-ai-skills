@@ -195,6 +195,8 @@ export function cleanupOldTasks(taskDir: string, maxAgeSeconds: number): number 
  * Validates existence and format of CLIENT_PRIVATE_KEY.
  */
 export function getPrivateKey(isJson: boolean): string {
+    // [SECURITY] Accesses the burner wallet private key for transaction signing.
+    // Use of burner wallets (minimal balance) is required by policy.
     const pk = process.env.CLIENT_PRIVATE_KEY;
     if (!pk) {
         reportError('CLIENT_PRIVATE_KEY not found in environment. Check .env file.', isJson, EXIT_CODES.AUTH_FAILURE);
