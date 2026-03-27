@@ -45,7 +45,7 @@ cli
   });
 
 cli.help();
-cli.version('2.2.0');
+cli.version('2.2.1');
 
 try {
   const result = cli.parse();
