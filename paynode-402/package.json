@@ -23,7 +23,7 @@
     "url": "https://github.com/PayNodeLabs/paynode-ai-skills.git"
   },
   "dependencies": {
-    "@paynodelabs/sdk-js": "file:../../sdk-js",
+    "@paynodelabs/sdk-js": "^2.2.2",
     "cac": "7.0.0",
     "dotenv": "16.4.5"
   }
