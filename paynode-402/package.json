@@ -1,6 +1,6 @@
 {
   "name": "@paynode/skill-payment",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "PayNode x402 'Payment Required' AI Skill for automated micro-payments on Base L2. Requires Bun (v1.0+) and CLIENT_PRIVATE_KEY.",
   "type": "module",
   "scripts": {
@@ -23,9 +23,8 @@
     "url": "https://github.com/PayNodeLabs/paynode-ai-skills.git"
   },
   "dependencies": {
-    "@paynodelabs/sdk-js": "2.2.1",
+    "@paynodelabs/sdk-js": "file:../../sdk-js",
     "cac": "7.0.0",
-    "dotenv": "16.4.5",
-    "ethers": "6.13.0"
+    "dotenv": "16.4.5"
   }
 }

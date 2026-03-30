@@ -1,4 +1,5 @@
-import { ethers } from 'ethers';
+import { ethers } from '@paynodelabs/sdk-js';
+
 import * as dotenv from 'dotenv';
 import { tmpdir } from 'os';
 import { join, dirname } from 'path';
@@ -19,7 +20,8 @@ if (fs.existsSync('.env')) {
 /**
  * Skill version for JSON output metadata. 
  */
-export const SKILL_VERSION = '2.2.1';
+export const SKILL_VERSION = '2.2.2';
+
 
 /**
  * Network configuration object.

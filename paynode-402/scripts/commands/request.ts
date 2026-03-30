@@ -1,7 +1,6 @@
-import { PayNodeAgentClient, RequestOptions } from '@paynodelabs/sdk-js';
+import { PayNodeAgentClient, RequestOptions, ethers } from '@paynodelabs/sdk-js';
 import { join, parse } from 'path';
 import { tmpdir } from 'os';
-import { ethers } from 'ethers';
 import fs from 'fs';
 import { spawn } from 'child_process';
 import {
@@ -69,13 +68,13 @@ function spawnBackground(url: string, args: string[], options: UnifiedRequestOpt
     const originalArgs = process.argv.slice(2);
     const flagsToRemove = ['--background', '--json', '--task-id', '--output', '--dry-run'];
     const childArgs: string[] = [];
-    
+
     for (let i = 0; i < originalArgs.length; i++) {
         const arg = originalArgs[i];
         if (flagsToRemove.includes(arg)) {
             // If flag takes an argument, skip both flag and value
             if ((arg === '--output' || arg === '--task-id') && i + 1 < originalArgs.length) {
-                i++; 
+                i++;
             }
             continue;
         }
@@ -143,6 +142,11 @@ async function executeCore(url: string, args: string[], options: UnifiedRequestO
             headers[k.trim()] = v.join(':').trim();
         }
     }
+    // [P1] Inject network header for Proxy validation
+    const paynodeNetwork = isSandbox ? 'testnet' : 'mainnet';
+    if (!headers['X-PayNode-Network']) {
+        headers['X-PayNode-Network'] = paynodeNetwork;
+    }
 
     // Auto-sniff JSON body for manual data
     if (options.data && !headers['Content-Type'] && !headers['content-type']) {
@@ -169,7 +173,7 @@ async function executeCore(url: string, args: string[], options: UnifiedRequestO
             // query parameters exist (either in URL or as args), put them into JSON body.
             const urlObj = new URL(url);
             const combinedParams = { ...kvParams };
-            
+
             // If the user only passed the URL with query params (no extra args)
             if (Object.keys(combinedParams).length === 0 && urlObj.searchParams.size > 0) {
                 for (const [k, v] of urlObj.searchParams.entries()) {
@@ -256,7 +260,7 @@ async function executeAndWrite(url: string, args: string[], options: UnifiedRequ
 
     try {
         const { result, binaryBuffer, contentType } = await executeCore(url, args, options);
-        
+
         if (binaryBuffer) {
             const { dir, name } = parse(outputPath);
             const binaryPath = join(dir, `${name}.bin`);
@@ -301,7 +305,7 @@ export async function requestAction(url: string, args: string[], options: Unifie
     }
 
     const isJson = !!options.json;
-    
+
     try {
         if (!isJson && !options.dryRun) {
             console.error(`🌐 x402 Request: ${url}...`);

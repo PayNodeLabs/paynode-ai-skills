@@ -3,6 +3,9 @@ import { cac } from 'cac';
 import { checkAction } from './commands/check.ts';
 import { mintAction } from './commands/mint.ts';
 import { requestAction } from './commands/request.ts';
+import { listPaidApisAction } from './commands/list-paid-apis.ts';
+import { getApiDetailAction } from './commands/get-api-detail.ts';
+import { invokePaidApiAction } from './commands/invoke-paid-api.ts';
 import { EXIT_CODES } from './utils.ts';
 
 const cli = cac('paynode-402');
@@ -13,6 +16,7 @@ cli.option('--network <name>', 'Network to use: mainnet or testnet/sepolia');
 cli.option('--rpc <url>', 'Custom RPC URL');
 cli.option('--confirm-mainnet', 'Required flag for mainnet operations (real USDC)');
 cli.option('--dry-run', 'Show request details without sending');
+cli.option('--market-url <url>', 'Marketplace base URL (overrides PAYNODE_MARKETPLACE_URL)');
 
 // Command: check
 cli
@@ -42,6 +46,38 @@ cli
   .option('--task-id <id>', 'Internal: task ID for background worker')
   .action((url, params, options) => {
     return requestAction(url, params, options);
+  });
+
+// Command: list-paid-apis
+cli
+  .command('list-paid-apis', 'List paid APIs from the marketplace catalog')
+  .option('--limit <n>', 'Maximum number of APIs to return')
+  .option('--tag [tag]', 'Catalog tag filter (can be used multiple times)', { default: [] })
+  .option('--seller <seller>', 'Seller identifier filter')
+  .action((options) => {
+    return listPaidApisAction(options);
+  });
+
+// Command: get-api-detail
+cli
+  .command('get-api-detail <apiId>', 'Get full detail for one paid API')
+  .action((apiId, options) => {
+    return getApiDetailAction(apiId, options);
+  });
+
+// Command: invoke-paid-api
+cli
+  .command('invoke-paid-api <apiId>', 'Invoke one paid API through the marketplace flow')
+  .option('-X, --method <method>', 'HTTP method override')
+  .option('-d, --data <data>', 'Invocation payload as raw JSON string')
+  .option('-H, --header [header]', 'HTTP header in "Key: Value" format (can be used multiple times)', { default: [] })
+  .option('--background', 'Execute in background, return immediately (AI-friendly)')
+  .option('--output <path>', 'Output file path for result (used with --background)')
+  .option('--max-age <seconds>', 'Auto-delete task files older than N seconds (default: 3600)')
+  .option('--task-dir <path>', 'Task directory for background results (default: <TMPDIR>/paynode-tasks)')
+  .option('--task-id <id>', 'Internal: task ID for background worker')
+  .action((apiId, options) => {
+    return invokePaidApiAction(apiId, options);
   });
 
 cli.help();

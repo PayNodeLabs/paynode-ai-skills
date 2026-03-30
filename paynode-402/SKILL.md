@@ -11,6 +11,7 @@ required_env_vars:
 optional_env_vars:
   - CUSTOM_ROUTER_ADDRESS
   - CUSTOM_USDC_ADDRESS
+  - PAYNODE_MARKETPLACE_URL
 required_binaries:
   - bun
 primary_credential: CLIENT_PRIVATE_KEY
@@ -22,6 +23,12 @@ install: bun install
 # 💳 PayNode 402 Protocol Skill (x402-v2, Base & Bun)
 
 Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.2.1) implements the **PayNode Protocol v2.2.1** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
+
+It also supports a lightweight paid-API marketplace flow:
+
+- discover payable APIs from a marketplace catalog
+- inspect API details before purchase
+- invoke one marketplace API while reusing the existing x402 payment path
 
 ## 🚀 Pre-execution Readiness
 
@@ -78,6 +85,11 @@ Follow this sequence to unlock protected resources.
 
 Determine the URL of the protected API you need to access.
 
+If a marketplace is configured, prefer discovering APIs from the catalog first:
+
+- `bun run paynode-402 list-paid-apis --json`
+- `bun run paynode-402 get-api-detail <API_ID> --json`
+
 ### Step 2: Request & Handle Challenge
 
 Run `bun run paynode-402 request "<URL>" --json --network <NETWORK>`.
@@ -95,6 +107,9 @@ Upon success, capture the JSON response. The `txHash` will be included in the lo
 | `bun run paynode-402 check --network <NETWORK>`           | Check wallet balance (ETH + USDC)      |
 | `bun run paynode-402 mint --network testnet`              | Mint 1,000 Test USDC on Base Sepolia   |
 | `bun run paynode-402 request "<URL>" --network <NETWORK>` | Access protected API with auto-payment |
+| `bun run paynode-402 list-paid-apis --network <NETWORK>`  | Discover paid APIs from marketplace    |
+| `bun run paynode-402 get-api-detail <API_ID>`             | Inspect one paid API                   |
+| `bun run paynode-402 invoke-paid-api <API_ID>`            | Invoke paid API via marketplace flow   |
 
 ### Network & Safety Flags
 
@@ -103,6 +118,7 @@ Upon success, capture the JSON response. The `txHash` will be included in the lo
 | `--network mainnet`   | Use Base Mainnet (Chain 8453)                        |
 | `--network testnet`   | Use Base Sepolia (Chain 84532)                       |
 | `--rpc <URL>`         | Custom RPC endpoint                                  |
+| `--market-url <URL>`  | Marketplace base URL (or use `PAYNODE_MARKETPLACE_URL`) |
 | `--json`              | JSON output (for agent consumption)                  |
 | `--confirm-mainnet`   | **Required** for mainnet operations (real USDC)      |
 | `--background`        | Execute request in background, return immediately    |
@@ -248,16 +264,28 @@ Both are safe as long as you follow the **Burner Wallet Policy** and NEVER use y
 
 ---
 
-## 🧪 Sandbox & Testing (Base Sepolia)
+## 🧪 Sandbox & Marketplace Testing
 
-Always test against sandbox endpoints first.
+Prefer marketplace-discovered APIs over hardcoded test endpoints.
 
 - **Gas (Test ETH)**:
   - [Optimism Superchain Faucet](https://console.optimism.io/faucet) (**Recommended**, 0.01 ETH daily)
   - _Note: If the faucet is down, use a search engine for "Base Sepolia Faucet" or bridge independently._
 - **Mock USDC (Payment)**: `bun run paynode-402 mint --network testnet --json`
-- **Test Merchant**: Use `https://paynode.dev/api/pom?network=testnet` with `-X POST` and `agent_name=YourName` to test x402-v2 payments. (A `GET` request only returns the list of entries).
-- **Reference**: See [Testing Guide](references/TESTING.md) for full examples.
+- **Discovery Rule**: When marketplace commands are available, discover payable APIs from the marketplace catalog instead of relying on a separate testing guide.
+- **Network Rule**: Use marketplace catalog filters or metadata to choose `testnet` APIs first, and only use `mainnet` APIs with `--confirm-mainnet`.
+- **Fallback**: If the marketplace is not yet available, `request "<URL>"` remains the raw x402 fallback for direct endpoint access.
+
+Example marketplace flow:
+
+```bash
+bun run paynode-402 list-paid-apis --network testnet --json
+bun run paynode-402 get-api-detail doodle-wall-demo --json
+bun run paynode-402 invoke-paid-api doodle-wall-demo \
+  --network testnet \
+  -d '{"agent_name":"PayNodeAgent"}' \
+  --json
+```
 
 ---
 
@@ -266,4 +294,4 @@ Always test against sandbox endpoints first.
 - **Official Docs**: [PayNode Documentation](https://docs.paynode.dev)
 - **SDKs**: [Node.js SDK](https://www.npmjs.com/package/@paynodelabs/sdk-js)
 - **Hub**: [PayNode Hub](https://github.com/PayNodeLabs/paynode-web)
-- **Testing**: [Detailed Testing & Examples](references/TESTING.md)
+- **Marketplace Plan**: [Marketplace Evolution](MARKETPLACE_EVOLUTION.md)
