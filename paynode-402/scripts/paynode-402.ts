@@ -80,8 +80,10 @@ cli
     return invokePaidApiAction(apiId, options);
   });
 
+import pkg from '../package.json';
+
 cli.help();
-cli.version('2.2.1');
+cli.version(pkg.version);
 
 try {
   const result = cli.parse();
