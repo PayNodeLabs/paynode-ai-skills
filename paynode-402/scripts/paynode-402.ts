@@ -15,6 +15,7 @@ const cli = cac('paynode-402');
 cli.option('--json', 'Output results in JSON format');
 cli.option('--network <name>', 'Network to use: mainnet or testnet/sepolia');
 cli.option('--rpc <url>', 'Custom RPC URL');
+cli.option('--rpc-timeout <ms>', 'Custom RPC timeout in milliseconds (default: 15000)');
 cli.option('--confirm-mainnet', 'Required flag for mainnet operations (real USDC)');
 cli.option('--dry-run', 'Show request details without sending');
 cli.option('--market-url <url>', 'Marketplace base URL');

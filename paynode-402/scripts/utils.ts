@@ -35,7 +35,7 @@ export const GLOBAL_CONFIG = {
  * Skill version for JSON output metadata. 
  */
 export const SKILL_VERSION = pkg.version;
-export const SDK_VERSION = '2.2.2'; // Bundled with @paynodelabs/sdk-js
+export const SDK_VERSION = '2.2.2'; // Bundled default
 
 /**
  * Shared base options for all CLI commands.
@@ -44,6 +44,7 @@ export interface BaseCliOptions {
     json?: boolean;
     network?: string;
     rpc?: string;
+    rpcTimeout?: number;
     confirmMainnet?: boolean;
     dryRun?: boolean;
     marketUrl?: string;
@@ -107,7 +108,7 @@ export const EXIT_CODES = {
     INTERNAL_ERROR: 14
 } as const;
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+export const DEFAULT_TIMEOUT_MS = 15_000;
 const MAX_RETRIES = 3;
 
 /**
@@ -135,7 +136,7 @@ export async function withRetry<T>(
 
 function isTransientError(error: any): boolean {
     const msg = (error?.message || '').toLowerCase();
-    const code = error?.code;
+    const code = error?.code || '';
 
     // --- Error Unwrap ---
     // Extract the deepest cause if it's an RpcError wrapping another error
@@ -145,30 +146,40 @@ function isTransientError(error: any): boolean {
         : '';
 
     // Never retry if it's a known non-transient failure
+    const isNonRetryableCode = [
+        'CALL_EXCEPTION',
+        'INVALID_ARGUMENT',
+        'UNSUPPORTED_OPERATION',
+        'ACTION_REJECTED',
+        'INSUFFICIENT_FUNDS'
+    ].includes(code);
+
     if (
+        isNonRetryableCode ||
         msg.includes('insufficient funds') ||
         msg.includes('execution reverted') ||
         detailMsg.includes('insufficient funds') ||
-        detailMsg.includes('execution reverted') ||
-        code === 'CALL_EXCEPTION' ||
-        code === 'INVALID_ARGUMENT' ||
-        code === 'UNSUPPORTED_OPERATION' ||
-        code === 'ACTION_REJECTED'
+        detailMsg.includes('execution reverted')
     ) {
         return false;
     }
 
+    const isRetryableCode = [
+        'NETWORK_ERROR',
+        'SERVER_ERROR',
+        'TIMEOUT',
+        'UNKNOWN_ERROR',
+        'rpc_error'
+    ].includes(code);
+
     return (
+        isRetryableCode ||
         msg.includes('timeout') ||
         msg.includes('network') ||
         msg.includes('fetch failed') ||
         msg.includes('econnrefused') ||
         msg.includes('econnreset') ||
         msg.includes('socket hang up') ||
-        code === 'NETWORK_ERROR' ||
-        code === 'SERVER_ERROR' ||
-        code === 'TIMEOUT' ||
-        code === 'rpc_error' ||
         detailMsg.includes('timeout') ||
         detailMsg.includes('network')
     );
@@ -205,7 +216,10 @@ export function cleanupOldTasks(taskDir: string, maxAgeSeconds: number): number 
             const fullPath = join(taskDir, file);
             try {
                 const stat = fs.statSync(fullPath);
-                if (stat.mtimeMs < cutoff) {
+                // mtimeMs can be updated by reads (depending on mount options), 
+                // birthtimeMs is creation. Use the minimum or birthtime for safe cleanup.
+                const effectiveTime = Math.min(stat.mtimeMs, stat.birthtimeMs || stat.mtimeMs);
+                if (effectiveTime < cutoff) {
                     fs.unlinkSync(fullPath);
                     cleaned++;
                 }
@@ -220,17 +234,15 @@ export function cleanupOldTasks(taskDir: string, maxAgeSeconds: number): number 
  * Validates existence and format of CLIENT_PRIVATE_KEY.
  */
 export function getPrivateKey(isJson: boolean): string {
-    // [SECURITY] Accesses the burner wallet private key for transaction signing.
-    // Use of burner wallets (minimal balance) is required by policy.
     const pk = GLOBAL_CONFIG.PRIVATE_KEY;
-    if (!pk) {
+    if (!pk || typeof pk !== 'string') {
         reportError('CLIENT_PRIVATE_KEY not found in environment. Check .env file.', isJson, EXIT_CODES.AUTH_FAILURE);
     }
     const pkRegex = /^0x[0-9a-fA-F]{64}$/;
-    if (!pkRegex.test(pk!)) {
+    if (!pkRegex.test(pk)) {
         reportError('Invalid CLIENT_PRIVATE_KEY format. Must be 0x-prefixed 64-hex chars.', isJson, EXIT_CODES.AUTH_FAILURE);
     }
-    return pk!;
+    return pk;
 }
 
 /**
@@ -250,7 +262,7 @@ export function requireMainnetConfirmation(isSandbox: boolean, confirmMainnet: b
 /**
  * Resolves network configuration with multi-RPC failover.
  */
-export async function resolveNetwork(providedRpcUrl?: string, network?: string): Promise<NetworkConfig> {
+export async function resolveNetwork(providedRpcUrl?: string, network?: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<NetworkConfig> {
     const {
         PAYNODE_ROUTER_ADDRESS,
         PAYNODE_ROUTER_ADDRESS_SANDBOX,
@@ -281,7 +293,7 @@ export async function resolveNetwork(providedRpcUrl?: string, network?: string):
             const tempProvider = new ethers.JsonRpcProvider(url, undefined, { staticNetwork: true, batchMaxCount: 1 });
             const networkInfo = await Promise.race([
                 tempProvider.getNetwork(),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('RPC timeout')), DEFAULT_TIMEOUT_MS))
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('RPC timeout')), timeoutMs))
             ]);
             provider = tempProvider;
             chainId = networkInfo.chainId;

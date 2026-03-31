@@ -6,14 +6,11 @@ import {
     reportError,
     jsonEnvelope,
     withRetry,
-    EXIT_CODES
+    EXIT_CODES,
+    BaseCliOptions
 } from '../utils.ts';
 
-interface CheckOptions {
-    network?: string;
-    rpc?: string;
-    json?: boolean;
-    confirmMainnet?: boolean;
+interface CheckOptions extends BaseCliOptions {
 }
 
 // Minimum gas threshold: 0.001 ETH (in wei)
@@ -26,7 +23,8 @@ export async function checkAction(options: CheckOptions) {
     try {
         const { provider, usdcAddress, chainId, networkName, isSandbox } = await resolveNetwork(
             options.rpc,
-            options.network
+            options.network,
+            options.rpcTimeout
         );
 
         // Mainnet safety gate

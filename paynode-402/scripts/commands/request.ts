@@ -97,6 +97,11 @@ function spawnBackground(url: string, args: string[], options: UnifiedRequestOpt
         'CUSTOM_ROUTER_ADDRESS',
         'CUSTOM_USDC_ADDRESS',
         'RPC_URL',
+        'ALCHEMY_API_KEY',
+        'INFURA_API_KEY',
+        'ETHERSCAN_API_KEY',
+        'HTTP_PROXY',
+        'HTTPS_PROXY',
         'NODE_PATH',
         'NVM_DIR',
         'BUN_INSTALL'
@@ -153,7 +158,7 @@ async function executeCore(url: string, args: string[], options: UnifiedRequestO
     const isJson = !!options.json || !!options.taskId;
     const startTs = Date.now();
 
-    const { rpcUrls, networkName, isSandbox } = await resolveNetwork(options.rpc, options.network);
+    const { rpcUrls, networkName, isSandbox } = await resolveNetwork(options.rpc, options.network, options.rpcTimeout);
     requireMainnetConfirmation(isSandbox, !!options.confirmMainnet, isJson);
 
     // Handle params (k=v)

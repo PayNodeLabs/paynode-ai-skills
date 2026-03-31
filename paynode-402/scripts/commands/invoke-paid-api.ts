@@ -71,8 +71,9 @@ export async function invokePaidApiAction(apiId: string, options: InvokePaidApiO
 
     await requestAction(invoke.invoke_url, [], {
       json: options.json,
-      network: options.network || invoke.network || 'testnet',
+      network: options.network || invoke.network, // Delegate fallback to resolveNetwork
       rpc: options.rpc,
+      rpcTimeout: options.rpcTimeout,
       confirmMainnet: options.confirmMainnet,
       method: options.method || invoke.method || 'POST',
       data: requestBody,

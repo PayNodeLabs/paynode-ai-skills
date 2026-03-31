@@ -6,6 +6,17 @@ export interface MarketplaceClientOptions {
   json?: boolean;
 }
 
+export class MarketplaceError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code: string = 'unknown_error'
+  ) {
+    super(message);
+    this.name = 'MarketplaceError';
+  }
+}
+
 export interface ListCatalogOptions {
   network?: string;
   limit?: number;
@@ -72,10 +83,7 @@ export class MarketplaceClient {
         errorCode = json.code || json.error || errorCode;
       } catch { /* use defaults if parse fails */ }
 
-      const err = new Error(errorMessage) as any;
-      err.status = response.status;
-      err.code = errorCode;
-      throw err;
+      throw new MarketplaceError(errorMessage, response.status, errorCode);
     }
 
     return await response.json() as T;

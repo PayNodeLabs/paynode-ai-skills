@@ -5,13 +5,11 @@ import {
     reportError,
     jsonEnvelope,
     withRetry,
-    EXIT_CODES
+    EXIT_CODES,
+    BaseCliOptions
 } from '../utils.ts';
 
-interface MintOptions {
-    network?: string;
-    rpc?: string;
-    json?: boolean;
+interface MintOptions extends BaseCliOptions {
     amount?: string;
 }
 
@@ -22,7 +20,8 @@ export async function mintAction(options: MintOptions) {
     try {
         const { provider, usdcAddress, chainId, networkName, isSandbox } = await resolveNetwork(
             options.rpc,
-            options.network || 'testnet'
+            options.network || 'testnet',
+            options.rpcTimeout
         );
 
         if (!isSandbox) {

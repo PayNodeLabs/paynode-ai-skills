@@ -1,10 +1,7 @@
 import { MarketplaceClient } from '../marketplace/client.ts';
-import { jsonEnvelope, reportError, EXIT_CODES } from '../utils.ts';
+import { jsonEnvelope, reportError, EXIT_CODES, BaseCliOptions } from '../utils.ts';
 
-interface ListPaidApisOptions {
-  json?: boolean;
-  network?: string;
-  marketUrl?: string;
+interface ListPaidApisOptions extends BaseCliOptions {
   limit?: string | number;
   tag?: string | string[];
   seller?: string;
