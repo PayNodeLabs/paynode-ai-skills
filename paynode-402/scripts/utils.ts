@@ -1,6 +1,9 @@
 import { ethers } from '@paynodelabs/sdk-js';
 
 import * as dotenv from 'dotenv';
+import pkg from '../package.json';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 import { tmpdir } from 'os';
 import { join, dirname } from 'path';
 import fs from 'fs';
@@ -11,16 +14,37 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Standard priority: CWD .env first, then Skill Root fallback
-if (fs.existsSync('.env')) {
-    dotenv.config();
-} else {
-    dotenv.config({ path: join(__dirname, '../.env') });
+const envConfig = fs.existsSync('.env')
+    ? dotenv.config()
+    : dotenv.config({ path: join(__dirname, '../.env') });
+
+if (envConfig.error && fs.existsSync('.env')) {
+    console.error(`⚠️  [Environment] Error loading .env: ${envConfig.error.message}`);
 }
+
+/**
+ * Centralized Configuration Loader
+ * [SECURITY] Consolidates environment variable access for better auditing.
+ */
+export const GLOBAL_CONFIG = {
+    MARKETPLACE_URL: 'https://mk.paynode.dev',
+    PRIVATE_KEY: process.env.CLIENT_PRIVATE_KEY,
+    CUSTOM_ROUTER: process.env.CUSTOM_ROUTER_ADDRESS,
+    CUSTOM_USDC: process.env.CUSTOM_USDC_ADDRESS,
+    RPC_URL_OVERRIDE: process.env.RPC_URL // Some users use RPC_URL instead of --rpc flag
+};
 
 /**
  * Skill version for JSON output metadata. 
  */
-export const SKILL_VERSION = '2.2.2';
+export const SKILL_VERSION = pkg.version;
+export const SDK_VERSION = (() => {
+    try {
+        return require('@paynodelabs/sdk-js/package.json').version;
+    } catch {
+        return 'unknown';
+    }
+})();
 
 
 /**
@@ -52,6 +76,7 @@ export interface CliConfig {
     taskId?: string;
     rpcUrl?: string;
     network?: string;
+    marketUrl?: string;
     method?: string;
     data?: string;
     headers?: Record<string, string>;
@@ -108,17 +133,17 @@ export async function withRetry<T>(
 function isTransientError(error: any): boolean {
     const msg = (error?.message || '').toLowerCase();
     const code = error?.code;
-    
+
     // --- Error Unwrap ---
     // Extract the deepest cause if it's an RpcError wrapping another error
     const details = error?.details;
-    const detailMsg = details 
+    const detailMsg = details
         ? (details.message || (typeof details === 'string' ? details : JSON.stringify(details))).toLowerCase()
         : '';
 
     // Never retry if it's a known non-transient failure
     if (
-        msg.includes('insufficient funds') || 
+        msg.includes('insufficient funds') ||
         msg.includes('execution reverted') ||
         detailMsg.includes('insufficient funds') ||
         detailMsg.includes('execution reverted') ||
@@ -144,11 +169,6 @@ function isTransientError(error: any): boolean {
         detailMsg.includes('timeout') ||
         detailMsg.includes('network')
     );
-}
-
-export function maskString(str: string, visiblePrefix = 6, visibleSuffix = 4): string {
-    if (!str || str.length <= visiblePrefix + visibleSuffix) return '********';
-    return `${str.substring(0, visiblePrefix)}...${str.substring(str.length - visibleSuffix)}`;
 }
 
 export const DEFAULT_TASK_DIR = join(tmpdir(), 'paynode-tasks');
@@ -199,7 +219,7 @@ export function cleanupOldTasks(taskDir: string, maxAgeSeconds: number): number 
 export function getPrivateKey(isJson: boolean): string {
     // [SECURITY] Accesses the burner wallet private key for transaction signing.
     // Use of burner wallets (minimal balance) is required by policy.
-    const pk = process.env.CLIENT_PRIVATE_KEY;
+    const pk = GLOBAL_CONFIG.PRIVATE_KEY;
     if (!pk) {
         reportError('CLIENT_PRIVATE_KEY not found in environment. Check .env file.', isJson, EXIT_CODES.AUTH_FAILURE);
     }
@@ -227,7 +247,7 @@ export function requireMainnetConfirmation(isSandbox: boolean, confirmMainnet: b
 /**
  * Resolves network configuration with multi-RPC failover.
  */
-export async function resolveNetwork(rpcUrl?: string, network?: string): Promise<NetworkConfig> {
+export async function resolveNetwork(providedRpcUrl?: string, network?: string): Promise<NetworkConfig> {
     const {
         PAYNODE_ROUTER_ADDRESS,
         PAYNODE_ROUTER_ADDRESS_SANDBOX,
@@ -245,10 +265,12 @@ export async function resolveNetwork(rpcUrl?: string, network?: string): Promise
         networkAlias === '84532' ||
         networkAlias === 'base-testnet';
 
-    let rpcUrls: string[] = rpcUrl ? [rpcUrl] : (isTestnetRequest ? BASE_RPC_URLS_SANDBOX : BASE_RPC_URLS);
+    const effectiveRpcUrl = providedRpcUrl || GLOBAL_CONFIG.RPC_URL_OVERRIDE;
+    let rpcUrls: string[] = effectiveRpcUrl ? [effectiveRpcUrl] : (isTestnetRequest ? BASE_RPC_URLS_SANDBOX : BASE_RPC_URLS);
     let lastError: Error | null = null;
     let provider: ethers.JsonRpcProvider | null = null;
     let chainId: bigint | null = null;
+    let activeRpcUrl: string | null = null;
 
     for (const url of rpcUrls) {
         try {
@@ -259,7 +281,7 @@ export async function resolveNetwork(rpcUrl?: string, network?: string): Promise
             ]);
             provider = tempProvider;
             chainId = networkInfo.chainId;
-            rpcUrl = url;
+            activeRpcUrl = url;
             break;
         } catch (error: any) {
             lastError = error;
@@ -267,20 +289,20 @@ export async function resolveNetwork(rpcUrl?: string, network?: string): Promise
         }
     }
 
-    if (!provider || !chainId) {
+    if (!provider || !chainId || !activeRpcUrl) {
         throw new Error(`Failed to connect to any RPC in [${rpcUrls.join(', ')}]: ${lastError?.message}`);
     }
 
     const isSandbox = chainId === 84532n;
     const networkName = isSandbox ? 'Base Sepolia (84532)' : 'Base L2 (8453)';
-    const customRouter = process.env.CUSTOM_ROUTER_ADDRESS;
-    const customUsdc = process.env.CUSTOM_USDC_ADDRESS;
+    const customRouter = GLOBAL_CONFIG.CUSTOM_ROUTER;
+    const customUsdc = GLOBAL_CONFIG.CUSTOM_USDC;
 
     return {
         provider,
         chainId: Number(chainId),
         isSandbox,
-        rpcUrl: rpcUrl!,
+        rpcUrl: activeRpcUrl,
         rpcUrls,
         usdcAddress: customUsdc || (isSandbox ? BASE_USDC_ADDRESS_SANDBOX : BASE_USDC_ADDRESS),
         routerAddress: customRouter || (isSandbox ? PAYNODE_ROUTER_ADDRESS_SANDBOX : PAYNODE_ROUTER_ADDRESS),
@@ -289,15 +311,25 @@ export async function resolveNetwork(rpcUrl?: string, network?: string): Promise
 }
 
 export function jsonEnvelope(data: Record<string, any>): string {
-    return JSON.stringify({ version: SKILL_VERSION, ...data }, null, 2);
+    return JSON.stringify({
+        version: SKILL_VERSION,
+        skill_version: SKILL_VERSION,
+        sdk_version: SDK_VERSION,
+        ...data
+    }, null, 2);
 }
 
-export function reportError(error: string | Error | any, isJson: boolean, defaultCode: number = EXIT_CODES.GENERIC_ERROR) {
+export function reportError(error: string | Error | any, isJson: boolean, defaultCode: number = EXIT_CODES.GENERIC_ERROR): never {
     let message = typeof error === 'string' ? error : (error?.message || 'An unknown error occurred');
     let exitCode = defaultCode;
     let errorCode: string | undefined;
 
-    const isPayNodeException = error?.name === 'PayNodeException' || (error?.code && typeof error.code === 'string');
+    const isPayNodeException = error?.name === 'PayNodeException' ||
+        (error?.code && typeof error.code === 'string' && (
+            error.code.startsWith('paynode_') ||
+            error.code.startsWith('x402_') ||
+            (error.code === 'rpc_error' && error?.message?.toLowerCase().includes('paynode'))
+        ));
     if (isPayNodeException) {
         errorCode = error.code;
 

@@ -11,7 +11,6 @@ required_env_vars:
 optional_env_vars:
   - CUSTOM_ROUTER_ADDRESS
   - CUSTOM_USDC_ADDRESS
-  - PAYNODE_MARKETPLACE_URL
 required_binaries:
   - bun
 primary_credential: CLIENT_PRIVATE_KEY
@@ -20,7 +19,7 @@ install: bun install
 
 # 💳 PayNode 402 Protocol Skill (x402-v2, Base & Bun)
 
-Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.2.2) implements the **PayNode Protocol v2.2.2** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
+Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.2.3) implements the **PayNode Protocol v2.2.2** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
 
 It also supports a lightweight paid-API marketplace flow:
 
@@ -124,18 +123,18 @@ Upon success, capture the JSON response. The `txHash` will be included in the lo
 
 ### Network & Safety Flags
 
-| Flag                  | Description                                             |
-| :-------------------- | :------------------------------------------------------ |
-| `--network mainnet`   | Use Base Mainnet (Chain 8453)                           |
-| `--network testnet`   | Use Base Sepolia (Chain 84532)                          |
-| `--rpc <URL>`         | Custom RPC endpoint                                     |
-| `--market-url <URL>`  | Marketplace base URL (or use `PAYNODE_MARKETPLACE_URL`) |
-| `--json`              | JSON output (for agent consumption)                     |
-| `--confirm-mainnet`   | **Required** for mainnet operations (real USDC)         |
-| `--background`        | Execute request in background, return immediately       |
-| `--output <path>`     | Result file path (used with `--background`)             |
-| `--max-age <seconds>` | Auto-delete old task files (default: 3600)              |
-| `--task-dir <path>`   | Task directory (default: system temp /paynode-tasks)    |
+| Flag                  | Description                                          |
+| :-------------------- | :--------------------------------------------------- |
+| `--network mainnet`   | Use Base Mainnet (Chain 8453)                        |
+| `--network testnet`   | Use Base Sepolia (Chain 84532)                       |
+| `--rpc <URL>`         | Custom RPC endpoint                                  |
+| `--market-url <URL>`  | Marketplace base URL                                 |
+| `--json`              | JSON output (for agent consumption)                  |
+| `--confirm-mainnet`   | **Required** for mainnet operations (real USDC)      |
+| `--background`        | Execute request in background, return immediately    |
+| `--output <path>`     | Result file path (used with `--background`)          |
+| `--max-age <seconds>` | Auto-delete old task files (default: 3600)           |
+| `--task-dir <path>`   | Task directory (default: system temp /paynode-tasks) |
 
 > [!IMPORTANT]
 > Mainnet operations require `--confirm-mainnet`. Without this flag, any mainnet command will exit with code `MAINNET_REJECTED`. This prevents accidental real-fund spending in automated contexts.

@@ -39,12 +39,13 @@ function mergeHeaders(
 }
 
 function parsePayload(data?: string): any {
-  if (!data) return {};
+  if (!data) return undefined;
 
   try {
     return JSON.parse(data);
   } catch {
-    return { raw: data };
+    console.warn(`⚠️ [Warning] Invocation data is not valid JSON. Sending as raw string.`);
+    return data;
   }
 }
 
@@ -63,14 +64,14 @@ export async function invokePaidApiAction(apiId: string, options: InvokePaidApiO
     });
 
     const requestHeaders = mergeHeaders(invoke.headers, options.header);
-    const hasPreparedBody = invoke.body && Object.keys(invoke.body).length > 0;
+    const hasPreparedBody = !!(invoke.body && typeof invoke.body === 'object' && Object.keys(invoke.body).length > 0);
     const requestBody = hasPreparedBody 
       ? JSON.stringify(invoke.body) 
-      : options.data; // [P0] Preserve CLI data if no prepared body (prefer user input)
+      : options.data; // Avoid forcing '{}' to allow proper method-based fallback
 
     await requestAction(invoke.invoke_url, [], {
       json: options.json,
-      network: options.network || invoke.network,
+      network: options.network || invoke.network || 'testnet',
       rpc: options.rpc,
       confirmMainnet: options.confirmMainnet,
       method: options.method || invoke.method || 'POST',

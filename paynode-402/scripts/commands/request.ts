@@ -16,7 +16,8 @@ import {
     DEFAULT_TASK_DIR,
     DEFAULT_MAX_AGE_SECONDS,
     EXIT_CODES,
-    SKILL_VERSION
+    SKILL_VERSION,
+    GLOBAL_CONFIG
 } from '../utils.ts';
 
 interface UnifiedRequestOptions {
@@ -57,23 +58,24 @@ interface CoreResult {
 
 // --- Background Launcher ---
 function spawnBackground(url: string, args: string[], options: UnifiedRequestOptions) {
-    const taskId = generateTaskId();
+    const taskId = options.taskId || generateTaskId(); // Use existing if re-spawning (though unlikely)
     const taskDir = options.taskDir || DEFAULT_TASK_DIR;
     const maxAge = options.maxAge || DEFAULT_MAX_AGE_SECONDS;
     const outputPath = options.output || join(taskDir, `${taskId}.json`);
+    const logPath = join(taskDir, `${taskId}.log`);
 
     fs.mkdirSync(taskDir, { recursive: true });
     cleanupOldTasks(taskDir, maxAge);
 
     const originalArgs = process.argv.slice(2);
-    const flagsToRemove = ['--background', '--json', '--task-id', '--output', '--dry-run'];
+    const flagsToRemove = ['--background', '--json', '--task-id', '--output', '--dry-run', '--max-age', '--task-dir'];
     const childArgs: string[] = [];
 
     for (let i = 0; i < originalArgs.length; i++) {
         const arg = originalArgs[i];
         if (flagsToRemove.includes(arg)) {
             // If flag takes an argument, skip both flag and value
-            if ((arg === '--output' || arg === '--task-id') && i + 1 < originalArgs.length) {
+            if (['--output', '--task-id', '--max-age', '--task-dir'].includes(arg) && i + 1 < originalArgs.length) {
                 i++;
             }
             continue;
@@ -82,15 +84,51 @@ function spawnBackground(url: string, args: string[], options: UnifiedRequestOpt
     }
     childArgs.push('--task-id', taskId, '--output', outputPath);
 
-    // [SECURITY] This is a self-re-execution for background processing.
+    // [SECURITY & LOGIC] 
+    // This is a self-re-execution for background processing.
+    // 1. We spawn the same script (process.argv[1]) with filtered arguments.
+    // 2. We add '--task-id' which signals the next execution to use 'executeAndWrite' path.
+    // 3. This avoids infinite recursion because the sub-process will NOT have '--background' in its args.
+    // 4. Stderr is piped to a .log file to allow debugging of background failures.
+    
+    const logFd = fs.openSync(logPath, 'a');
     // The child command is pinned to 'process.execPath' (the current runtime) and 'process.argv[1]' (the current script).
     // Arguments are filtered to prevent recursive loops.
+    // [SECURITY] Filter environment variables passed to background child process.
+    // Minimizes exposure of non-essential credentials.
+    const whitelist = [
+        'CLIENT_PRIVATE_KEY',
+        'CUSTOM_ROUTER_ADDRESS',
+        'CUSTOM_USDC_ADDRESS',
+        'RPC_URL',
+        'NODE_PATH',
+        'NVM_DIR',
+        'BUN_INSTALL'
+    ];
+    // Essential OS-level vars
+    const baseEnv = Object.fromEntries(
+        Object.entries({
+            PATH: process.env.PATH,
+            HOME: process.env.HOME,
+            TMPDIR: process.env.TMPDIR,
+            USER: process.env.USER,
+            SHELL: process.env.SHELL
+        }).filter(([, v]) => v !== undefined)
+    ) as Record<string, string>;
+    const childEnv: Record<string, string | undefined> = { ...baseEnv };
+    for (const key of whitelist) {
+        if (process.env[key]) childEnv[key] = process.env[key];
+    }
+
     const child = spawn(process.execPath, [process.argv[1], ...childArgs], {
         detached: true,
-        stdio: 'ignore',
-        env: process.env
+        stdio: ['ignore', 'ignore', logFd],
+        env: childEnv
     });
     child.unref();
+
+    // After unref. the parent no longer needs logFd. The child has its own copy.
+    fs.closeSync(logFd);
 
     const pendingInfo = {
         status: 'pending',
@@ -108,7 +146,8 @@ function spawnBackground(url: string, args: string[], options: UnifiedRequestOpt
         console.log(`\n🚀 **Background Task Started**`);
         console.log(`- **Task ID**: \`${taskId}\``);
         console.log(`- **Output**: \`${outputPath}\``);
-        console.log(`\nUse \`cat ${outputPath}\` to check progress.`);
+        console.log(`- **Log**:    \`${logPath}\``);
+        console.log(`\nUse \`cat ${outputPath}\` to check progress or \`tail -f ${logPath}\` for logs.`);
     }
     process.exit(0);
 }
@@ -116,7 +155,6 @@ function spawnBackground(url: string, args: string[], options: UnifiedRequestOpt
 // --- Core x402 Execution ---
 async function executeCore(url: string, args: string[], options: UnifiedRequestOptions): Promise<CoreResult> {
     const isJson = !!options.json || !!options.taskId;
-    const pk = getPrivateKey(isJson);
     const startTs = Date.now();
 
     const { rpcUrls, networkName, isSandbox } = await resolveNetwork(options.rpc, options.network);
@@ -189,6 +227,7 @@ async function executeCore(url: string, args: string[], options: UnifiedRequestO
 
     // Dry-run
     if (options.dryRun) {
+        const pkForAddress = GLOBAL_CONFIG.PRIVATE_KEY;
         return {
             result: {
                 url: targetUrl,
@@ -200,12 +239,14 @@ async function executeCore(url: string, args: string[], options: UnifiedRequestO
                 data: null,
                 duration_ms: 0,
                 dry_run: true,
-                wallet: (new ethers.Wallet(pk)).address,
+                wallet: (isJson && pkForAddress) ? (new ethers.Wallet(pkForAddress)).address : undefined,
                 message: 'Dry-run: request prepared but not sent.'
             },
             contentType: 'application/json'
         };
     }
+
+    const pk = getPrivateKey(isJson);
 
     const client = new PayNodeAgentClient(pk, rpcUrls);
     const response = await withRetry(

@@ -16,7 +16,7 @@ cli.option('--network <name>', 'Network to use: mainnet or testnet/sepolia');
 cli.option('--rpc <url>', 'Custom RPC URL');
 cli.option('--confirm-mainnet', 'Required flag for mainnet operations (real USDC)');
 cli.option('--dry-run', 'Show request details without sending');
-cli.option('--market-url <url>', 'Marketplace base URL (overrides PAYNODE_MARKETPLACE_URL)');
+cli.option('--market-url <url>', 'Marketplace base URL');
 
 // Command: check
 cli
@@ -35,7 +35,7 @@ cli
 
 // Command: request
 cli
-  .command('request <url> [...params]', 'Access protected API and handle x402 payments')
+  .command('request <url> [...params]', 'Access protected API and handle x402 payments. Params: key=value pairs for query/body.')
   .option('-X, --method <method>', 'HTTP method (GET, POST, etc.)')
   .option('-d, --data <data>', 'Raw request body data')
   .option('-H, --header [header]', 'HTTP header in "Key: Value" format (can be used multiple times)', { default: [] })

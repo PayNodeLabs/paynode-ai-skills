@@ -1,4 +1,4 @@
-import { jsonEnvelope, reportError, withRetry, EXIT_CODES } from '../utils.ts';
+import { jsonEnvelope, reportError, withRetry, EXIT_CODES, GLOBAL_CONFIG } from '../utils.ts';
 import type { CatalogApiItem, CatalogListResponse, InvokePreparation } from './types.ts';
 
 export interface MarketplaceClientOptions {
@@ -33,7 +33,7 @@ function normalizeCatalogItem(raw: any): CatalogApiItem {
     price_per_call: raw.price_per_call || raw.price || raw.amount,
     currency: raw.currency || 'USDC',
     network: raw.network,
-    seller: raw.seller || {
+    seller: (raw.seller && Object.keys(raw.seller).length > 0) ? raw.seller : {
       name: raw.seller_name,
       wallet_address: raw.wallet_address
     },
@@ -42,8 +42,7 @@ function normalizeCatalogItem(raw: any): CatalogApiItem {
     invoke_url: raw.invoke_url,
     input_schema: raw.input_schema,
     sample_response: raw.sample_response,
-    headers_template: raw.headers_template,
-    ...raw
+    headers_template: raw.headers_template
   };
 }
 
@@ -52,16 +51,8 @@ export class MarketplaceClient {
   private readonly isJson: boolean;
 
   constructor(options: MarketplaceClientOptions = {}) {
-    this.baseUrl = options.baseUrl || process.env.PAYNODE_MARKETPLACE_URL || '';
+    this.baseUrl = options.baseUrl || GLOBAL_CONFIG.MARKETPLACE_URL;
     this.isJson = !!options.json;
-
-    if (!this.baseUrl) {
-      reportError(
-        'PAYNODE_MARKETPLACE_URL is not configured. Set it in the environment or pass --market-url.',
-        this.isJson,
-        EXIT_CODES.INVALID_ARGS
-      );
-    }
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -74,16 +65,17 @@ export class MarketplaceClient {
     if (!response.ok) {
       const text = await response.text();
       let errorMessage = `Marketplace request failed (${response.status}) at ${path}: ${text || 'empty response'}`;
+      let errorCode = 'unknown_error';
       try {
         const json = JSON.parse(text);
         if (json.message) errorMessage = json.message;
-        const err = new Error(errorMessage) as any;
-        err.status = response.status;
-        err.code = json.code || json.error;
-        throw err;
-      } catch {
-        throw new Error(errorMessage);
-      }
+        errorCode = json.code || json.error || errorCode;
+      } catch { /* use defaults if parse fails */ }
+
+      const err = new Error(errorMessage) as any;
+      err.status = response.status;
+      err.code = errorCode;
+      throw err;
     }
 
     return await response.json() as T;
@@ -98,17 +90,7 @@ export class MarketplaceClient {
       url.searchParams.append('tag', tag);
     }
 
-    const response = await withRetry(
-      () => fetch(url.toString()),
-      'marketplace:list'
-    );
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Marketplace catalog request failed (${response.status}): ${body || 'empty response'}`);
-    }
-
-    const raw = await response.json() as any;
+    const raw = await this.request<any>(`/api/v1/paid-apis${url.search}`);
     const items = Array.isArray(raw.items)
       ? raw.items.map(normalizeCatalogItem)
       : Array.isArray(raw)
@@ -135,7 +117,7 @@ export class MarketplaceClient {
         },
         body: JSON.stringify({
           network: options.network,
-          payload: options.payload || {}
+          payload: options.payload ?? {}
         })
       });
 
@@ -157,7 +139,7 @@ export class MarketplaceClient {
         invoke_url: invokeUrl,
         method: detail.method || 'POST',
         headers: detail.headers_template || {},
-        body: options.payload || {}
+        body: options.payload ?? {}
       };
     }
   }
