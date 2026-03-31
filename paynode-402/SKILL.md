@@ -19,7 +19,7 @@ install: bun install
 
 # 💳 PayNode 402 Protocol Skill (x402-v2, Base & Bun)
 
-Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.2.3) implements the **PayNode Protocol v2.2.2** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
+Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.2.4) implements the **PayNode Protocol v2.2.2** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
 
 It also supports a lightweight paid-API marketplace flow:
 
@@ -71,7 +71,9 @@ Before any request, verify the environment and balances:
 
 ```json
 {
-  "version": "2.2.2",
+  "version": "2.2.4",
+  "skill_version": "2.2.4",
+  "sdk_version": "2.2.2",
   "status": "success",
   "address": "0x...",
   "eth": 0.01,
@@ -118,8 +120,8 @@ Upon success, capture the JSON response. The `txHash` will be included in the lo
 | `bun run paynode-402 mint [--amount N] --network testnet` | Mint Test USDC on Base Sepolia         |
 | `bun run paynode-402 request "<URL>" --network <NETWORK>` | Access protected API with auto-payment |
 | `bun run paynode-402 list-paid-apis --network <NETWORK>`  | Discover paid APIs from marketplace    |
-| `bun run paynode-402 get-api-detail <API_ID>`             | Inspect one paid API                   |
-| `bun run paynode-402 invoke-paid-api <API_ID>`            | Invoke paid API via marketplace flow   |
+| `bun run paynode-402 get-api-detail <API_ID> --network <NETWORK>` | Inspect one paid API                   |
+| `bun run paynode-402 invoke-paid-api <API_ID> --network <NETWORK>` | Invoke paid API via marketplace flow   |
 
 ### Network & Safety Flags
 
@@ -151,7 +153,9 @@ bun run paynode-402 request "https://api.example.com/data" \
 
 # Immediate output:
 # {
-#   "version": "2.2.2",
+#   "version": "2.2.4",
+#   "skill_version": "2.2.4",
+#   "sdk_version": "2.2.2",
 #   "status": "pending",
 #   "task_id": "m2k8x-a1b2",
 #   "output": "<TMPDIR>/paynode-tasks/m2k8x-a1b2.json",
@@ -165,7 +169,9 @@ cat <TMPDIR>/paynode-tasks/m2k8x-a1b2.json
 
 # Completed result:
 # {
-#   "version": "2.2.2",
+#   "version": "2.2.4",
+#   "skill_version": "2.2.4",
+#   "sdk_version": "2.2.2",
 #   "status": "completed",
 #   "task_id": "m2k8x-a1b2",
 #   "data": { ... },
@@ -291,7 +297,7 @@ Example marketplace flow:
 
 ```bash
 bun run paynode-402 list-paid-apis --network testnet --json
-bun run paynode-402 get-api-detail doodle-wall-demo --json
+bun run paynode-402 get-api-detail doodle-wall-demo --network testnet --json
 bun run paynode-402 invoke-paid-api doodle-wall-demo \
   --network testnet \
   -d '{"agent_name":"PayNodeAgent"}' \

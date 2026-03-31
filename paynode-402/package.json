@@ -1,6 +1,6 @@
 {
   "name": "@paynode/skill-payment",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "PayNode x402 'Payment Required' AI Skill for automated micro-payments on Base L2. Requires Bun (v1.0+) and CLIENT_PRIVATE_KEY.",
   "type": "module",
   "scripts": {
@@ -29,5 +29,17 @@
   },
   "devDependencies": {
     "bun-types": "^1.0.0"
+  },
+  "paynode": {
+    "required_env_vars": [
+      "CLIENT_PRIVATE_KEY"
+    ],
+    "optional_env_vars": [
+      "CUSTOM_ROUTER_ADDRESS",
+      "CUSTOM_USDC_ADDRESS"
+    ],
+    "required_binaries": [
+      "bun"
+    ]
   }
 }

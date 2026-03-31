@@ -13,7 +13,7 @@ export async function getApiDetailAction(apiId: string, options: GetApiDetailOpt
       json: isJson
     });
 
-    const detail = await client.getApiDetail(apiId);
+    const detail = await client.getApiDetail(apiId, options.network);
 
     if (isJson) {
       console.log(jsonEnvelope({

@@ -142,8 +142,12 @@ export class MarketplaceClient {
     };
   }
 
-  async getApiDetail(apiId: string): Promise<CatalogApiItem> {
-    const raw = await this.request<any>(`/api/v1/paid-apis/${encodeURIComponent(apiId)}`);
+  async getApiDetail(apiId: string, network?: string): Promise<CatalogApiItem> {
+    const params = new URLSearchParams();
+    if (network) params.set('network', network);
+    const query = params.toString();
+    const path = `/api/v1/paid-apis/${encodeURIComponent(apiId)}${query ? `?${query}` : ''}`;
+    const raw = await this.request<any>(path);
     return normalizeCatalogItem(raw);
   }
 
@@ -167,7 +171,7 @@ export class MarketplaceClient {
       return preparation;
     } catch (err: any) {
       console.warn(`[Marketplace] /invoke preparation failed for ${apiId}, falling back to direct proxy. Error: ${err.message}`);
-      const detail = await this.getApiDetail(apiId);
+      const detail = await this.getApiDetail(apiId, options.network);
       const invokeUrl = detail.payable_url || detail.invoke_url;
       if (!invokeUrl) {
         throw new Error(`API '${apiId}' is missing payable_url/invoke_url and marketplace did not provide an invoke preparation.`);
