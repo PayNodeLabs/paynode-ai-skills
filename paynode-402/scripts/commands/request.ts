@@ -18,7 +18,8 @@ import {
     EXIT_CODES,
     SKILL_VERSION,
     GLOBAL_CONFIG,
-    BaseCliOptions
+    BaseCliOptions,
+    maskAddress
 } from '../utils.ts';
 
 interface UnifiedRequestOptions extends BaseCliOptions {
@@ -229,6 +230,13 @@ async function executeCore(url: string, args: string[], options: UnifiedRequestO
     // Dry-run
     if (options.dryRun) {
         const pkForAddress = GLOBAL_CONFIG.PRIVATE_KEY;
+        let walletAddr: string | undefined;
+        try {
+            if (pkForAddress && isJson) {
+                walletAddr = maskAddress((new ethers.Wallet(pkForAddress)).address);
+            }
+        } catch { /* skip if PK invalid */ }
+
         return {
             result: {
                 url: targetUrl,
@@ -240,7 +248,7 @@ async function executeCore(url: string, args: string[], options: UnifiedRequestO
                 data: null,
                 duration_ms: 0,
                 dry_run: true,
-                wallet: (isJson && pkForAddress) ? (new ethers.Wallet(pkForAddress)).address : undefined,
+                wallet: walletAddr,
                 message: 'Dry-run: request prepared but not sent.'
             },
             contentType: 'application/json'

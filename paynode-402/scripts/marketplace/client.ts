@@ -35,16 +35,45 @@ function joinUrl(baseUrl: string, path: string): string {
   return `${normalizedBase}${normalizedPath}`;
 }
 
-function normalizeCatalogItem(raw: any): CatalogApiItem {
+export interface RawCatalogApiItem {
+  id?: string;
+  api_id?: string;
+  name?: string;
+  title?: string;
+  api_name?: string;
+  description?: string;
+  tags?: string[];
+  price_per_call?: string | number;
+  price?: string | number;
+  amount?: string | number;
+  currency?: string;
+  network?: string;
+  seller?: any;
+  seller_name?: string;
+  wallet_address?: string;
+  method?: string;
+  http_method?: string;
+  payable_url?: string;
+  payment_url?: string;
+  invoke_url?: string;
+  input_schema?: any;
+  sample_response?: any;
+  headers_template?: any;
+}
+
+function normalizeCatalogItem(raw: RawCatalogApiItem): CatalogApiItem {
   return {
-    id: raw.id || raw.api_id,
-    name: raw.name || raw.title || raw.api_name || raw.api_id,
+    id: raw.id || raw.api_id || '',
+    name: raw.name || raw.title || raw.api_name || raw.api_id || 'unnamed',
     description: raw.description,
     tags: Array.isArray(raw.tags) ? raw.tags : [],
-    price_per_call: raw.price_per_call || raw.price || raw.amount,
+    price_per_call: String(raw.price_per_call || raw.price || raw.amount || '0'),
     currency: raw.currency || 'USDC',
     network: raw.network,
-    seller: (raw.seller && Object.keys(raw.seller).length > 0) ? raw.seller : {
+    seller: (raw.seller && typeof raw.seller === 'object' && Object.keys(raw.seller).length > 0) ? {
+      name: raw.seller.name || raw.seller.seller_name,
+      wallet_address: raw.seller.wallet_address || raw.seller.address
+    } : {
       name: raw.seller_name,
       wallet_address: raw.wallet_address
     },

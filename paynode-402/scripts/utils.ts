@@ -194,6 +194,11 @@ export function generateTaskId(): string {
     return `${ts}-${rand}`;
 }
 
+export function maskAddress(address: string): string {
+    if (!address || address.length < 10) return address;
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+}
+
 export function isInlineContent(contentType: string): boolean {
     const ct = (contentType || '').split(';')[0].trim().toLowerCase();
     return (
@@ -234,7 +239,7 @@ export function cleanupOldTasks(taskDir: string, maxAgeSeconds: number): number 
  * Validates existence and format of CLIENT_PRIVATE_KEY.
  */
 export function getPrivateKey(isJson: boolean): string {
-    const pk = GLOBAL_CONFIG.PRIVATE_KEY;
+    const pk: string | undefined = GLOBAL_CONFIG.PRIVATE_KEY;
     if (!pk || typeof pk !== 'string') {
         reportError('CLIENT_PRIVATE_KEY not found in environment. Check .env file.', isJson, EXIT_CODES.AUTH_FAILURE);
     }

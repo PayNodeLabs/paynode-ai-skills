@@ -67,7 +67,7 @@ export async function invokePaidApiAction(apiId: string, options: InvokePaidApiO
     const hasPreparedBody = !!(invoke.body && typeof invoke.body === 'object' && Object.keys(invoke.body).length > 0);
     const requestBody = hasPreparedBody 
       ? JSON.stringify(invoke.body) 
-      : options.data; // Avoid forcing '{}' to allow proper method-based fallback
+      : (options.data || undefined); // Use undefined if no data to trigger smart promotion if needed
 
     await requestAction(invoke.invoke_url, [], {
       json: options.json,
