@@ -1,13 +1,10 @@
 import { ethers } from '@paynodelabs/sdk-js';
-
 import * as dotenv from 'dotenv';
-import pkg from '../package.json';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 import { tmpdir } from 'os';
 import { join, dirname } from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import pkg from '../package.json';
 
 // --- Environment Loading (Refined) ---
 const __filename = fileURLToPath(import.meta.url);
@@ -38,13 +35,19 @@ export const GLOBAL_CONFIG = {
  * Skill version for JSON output metadata. 
  */
 export const SKILL_VERSION = pkg.version;
-export const SDK_VERSION = (() => {
-    try {
-        return require('@paynodelabs/sdk-js/package.json').version;
-    } catch {
-        return 'unknown';
-    }
-})();
+export const SDK_VERSION = '2.2.2'; // Bundled with @paynodelabs/sdk-js
+
+/**
+ * Shared base options for all CLI commands.
+ */
+export interface BaseCliOptions {
+    json?: boolean;
+    network?: string;
+    rpc?: string;
+    confirmMainnet?: boolean;
+    dryRun?: boolean;
+    marketUrl?: string;
+}
 
 
 /**
@@ -266,7 +269,8 @@ export async function resolveNetwork(providedRpcUrl?: string, network?: string):
         networkAlias === 'base-testnet';
 
     const effectiveRpcUrl = providedRpcUrl || GLOBAL_CONFIG.RPC_URL_OVERRIDE;
-    let rpcUrls: string[] = effectiveRpcUrl ? [effectiveRpcUrl] : (isTestnetRequest ? BASE_RPC_URLS_SANDBOX : BASE_RPC_URLS);
+    const sdkRpcUrls = (isTestnetRequest ? (BASE_RPC_URLS_SANDBOX || []) : (BASE_RPC_URLS || []));
+    const rpcUrls: string[] = effectiveRpcUrl ? [effectiveRpcUrl] : sdkRpcUrls;
     let lastError: Error | null = null;
     let provider: ethers.JsonRpcProvider | null = null;
     let chainId: bigint | null = null;
@@ -319,24 +323,24 @@ export function jsonEnvelope(data: Record<string, any>): string {
     }, null, 2);
 }
 
-export function reportError(error: string | Error | any, isJson: boolean, defaultCode: number = EXIT_CODES.GENERIC_ERROR): never {
-    let message = typeof error === 'string' ? error : (error?.message || 'An unknown error occurred');
+export function reportError(err: string | Error | any, isJson: boolean, defaultCode: number = EXIT_CODES.GENERIC_ERROR): never {
+    let message = typeof err === 'string' ? err : (err?.message || 'An unknown error occurred');
     let exitCode = defaultCode;
     let errorCode: string | undefined;
 
-    const isPayNodeException = error?.name === 'PayNodeException' ||
-        (error?.code && typeof error.code === 'string' && (
-            error.code.startsWith('paynode_') ||
-            error.code.startsWith('x402_') ||
-            (error.code === 'rpc_error' && error?.message?.toLowerCase().includes('paynode'))
+    const isPayNodeException = err?.name === 'PayNodeException' ||
+        (err?.code && typeof err.code === 'string' && (
+            err.code.startsWith('paynode_') ||
+            err.code.startsWith('x402_') ||
+            (err.code === 'rpc_error' && err?.message?.toLowerCase().includes('paynode'))
         ));
     if (isPayNodeException) {
-        errorCode = error.code;
+        errorCode = err.code;
 
         // --- Defensive Unwrap ---
         // If SDK masks a specific blockchain error as a generic 'rpc_error', try to recover it from details.
-        if (errorCode === 'rpc_error' && error.details) {
-            const detailMsg = (error.details.message || JSON.stringify(error.details)).toLowerCase();
+        if (errorCode === 'rpc_error' && err.details) {
+            const detailMsg = (err.details.message || JSON.stringify(err.details)).toLowerCase();
             if (detailMsg.includes('insufficient funds') || detailMsg.includes('execution reverted')) {
                 errorCode = 'insufficient_funds';
                 message = 'Insufficient funds for transaction gas or payment. Please verify ETH/USDC balances.';
@@ -364,7 +368,7 @@ export function reportError(error: string | Error | any, isJson: boolean, defaul
     }
 
     if (isJson) {
-        console.log(jsonEnvelope({ status: 'error', message, exitCode, errorCode, details: error?.details }));
+        console.log(jsonEnvelope({ status: 'error', message, exitCode, errorCode, details: err?.details }));
     } else {
         const prefix = isPayNodeException ? `🛑 [PayNode-${errorCode}]` : `❌ ERROR:`;
         console.error(`${prefix} ${message} (Code: ${exitCode})`);
@@ -372,7 +376,7 @@ export function reportError(error: string | Error | any, isJson: boolean, defaul
             console.error(`💡 Tip: Use 'bun run paynode-402 check' to verify ETH/USDC balances.`);
             console.error(`💡 Faucet (Testnet): [console.optimism.io/faucet](https://console.optimism.io/faucet)`);
         } else if (errorCode === 'amount_too_low') {
-            const min = error?.details?.minimum || 1000;
+            const min = err?.details?.minimum || 1000;
             console.error(`💡 Tip: Minimum requirement is ${min} units.`);
         }
     }

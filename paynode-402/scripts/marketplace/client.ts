@@ -82,15 +82,16 @@ export class MarketplaceClient {
   }
 
   async listCatalog(options: ListCatalogOptions = {}): Promise<CatalogListResponse> {
-    const url = new URL(joinUrl(this.baseUrl, '/api/v1/paid-apis'));
-    if (options.network) url.searchParams.set('network', options.network);
-    if (options.limit) url.searchParams.set('limit', String(options.limit));
-    if (options.seller) url.searchParams.set('seller', options.seller);
+    const params = new URLSearchParams();
+    if (options.network) params.set('network', options.network);
+    if (options.limit) params.set('limit', String(options.limit));
+    if (options.seller) params.set('seller', options.seller);
     for (const tag of options.tag || []) {
-      url.searchParams.append('tag', tag);
+      params.append('tag', tag);
     }
 
-    const path = `/api/v1/paid-apis${url.search ? url.search : ''}`;
+    const query = params.toString();
+    const path = `/api/v1/paid-apis${query ? `?${query}` : ''}`;
     const raw = await this.request<any>(path);
     const items = Array.isArray(raw.items)
       ? raw.items.map(normalizeCatalogItem)

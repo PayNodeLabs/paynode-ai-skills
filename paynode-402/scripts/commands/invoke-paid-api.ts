@@ -1,18 +1,12 @@
 import { requestAction } from './request.ts';
 import { MarketplaceClient } from '../marketplace/client.ts';
-import { reportError, EXIT_CODES } from '../utils.ts';
+import { reportError, EXIT_CODES, BaseCliOptions } from '../utils.ts';
 
-interface InvokePaidApiOptions {
-  json?: boolean;
-  network?: string;
-  marketUrl?: string;
-  confirmMainnet?: boolean;
-  rpc?: string;
+interface InvokePaidApiOptions extends BaseCliOptions {
   method?: string;
   data?: string;
   header?: string | string[];
   background?: boolean;
-  dryRun?: boolean;
   output?: string;
   maxAge?: number;
   taskDir?: string;
@@ -43,8 +37,14 @@ function parsePayload(data?: string): any {
 
   try {
     return JSON.parse(data);
-  } catch {
-    console.warn(`⚠️ [Warning] Invocation data is not valid JSON. Sending as raw string.`);
+  } catch (err: any) {
+    const isJsonLike = data.trim().startsWith('{') || data.trim().startsWith('[');
+    if (isJsonLike) {
+      console.warn(`⚠️ [Warning] Invocation data looks like JSON but failed to parse: ${err.message}`);
+      console.warn(`Sending as raw string instead. Please verify your JSON syntax.`);
+    } else {
+      console.warn(`⚠️ [Warning] Invocation data is not valid JSON. Sending as raw string.`);
+    }
     return data;
   }
 }

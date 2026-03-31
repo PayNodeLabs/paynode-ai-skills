@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { cac } from 'cac';
+import pkg from '../package.json';
 import { checkAction } from './commands/check.ts';
 import { mintAction } from './commands/mint.ts';
 import { requestAction } from './commands/request.ts';
@@ -80,7 +81,6 @@ cli
     return invokePaidApiAction(apiId, options);
   });
 
-import pkg from '../package.json';
 
 cli.help();
 cli.version(pkg.version);

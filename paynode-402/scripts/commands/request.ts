@@ -17,19 +17,15 @@ import {
     DEFAULT_MAX_AGE_SECONDS,
     EXIT_CODES,
     SKILL_VERSION,
-    GLOBAL_CONFIG
+    GLOBAL_CONFIG,
+    BaseCliOptions
 } from '../utils.ts';
 
-interface UnifiedRequestOptions {
+interface UnifiedRequestOptions extends BaseCliOptions {
     method?: string;
     data?: string;
     header?: string | string[];
-    network?: string;
-    rpc?: string;
-    json?: boolean;
-    confirmMainnet?: boolean;
     background?: boolean;
-    dryRun?: boolean;
     output?: string;
     maxAge?: number;
     taskDir?: string;
