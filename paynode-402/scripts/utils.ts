@@ -18,7 +18,7 @@ const envConfig = fs.existsSync('.env')
     ? dotenv.config()
     : dotenv.config({ path: join(__dirname, '../.env') });
 
-if (envConfig.error && fs.existsSync('.env')) {
+if (envConfig.error) {
     console.error(`⚠️  [Environment] Error loading .env: ${envConfig.error.message}`);
 }
 
@@ -122,8 +122,8 @@ export async function withRetry<T>(
         } catch (error: any) {
             lastError = error;
             if (!isTransientError(error) || attempt >= maxRetries - 1) throw error;
-            const backoffMs = Math.pow(2, attempt) * 1000;
-            console.error(`⚠️ [${label}] ${error.message}. Retry #${attempt + 1} (of ${maxRetries - 1}) in ${backoffMs}ms...`);
+            const backoffMs = Math.pow(2, attempt) * 1000 * (0.5 + Math.random());
+            console.error(`⚠️ [${label}] ${error.message}. Retry #${attempt + 1} (of ${maxRetries - 1}) in ${Math.round(backoffMs)}ms...`);
             await new Promise(resolve => setTimeout(resolve, backoffMs));
         }
     }

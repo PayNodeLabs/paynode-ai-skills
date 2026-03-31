@@ -200,7 +200,7 @@ async function executeCore(url: string, args: string[], options: UnifiedRequestO
     if (method === 'GET') {
         const urlObj = new URL(url);
         for (const [k, v] of Object.entries(kvParams)) {
-            urlObj.searchParams.append(k, v);
+            urlObj.searchParams.set(k, v);
         }
         targetUrl = urlObj.toString();
     } else {

@@ -90,7 +90,8 @@ export class MarketplaceClient {
       url.searchParams.append('tag', tag);
     }
 
-    const raw = await this.request<any>(`/api/v1/paid-apis${url.search}`);
+    const path = `/api/v1/paid-apis${url.search ? url.search : ''}`;
+    const raw = await this.request<any>(path);
     const items = Array.isArray(raw.items)
       ? raw.items.map(normalizeCatalogItem)
       : Array.isArray(raw)

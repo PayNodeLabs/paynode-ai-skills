@@ -89,11 +89,16 @@ try {
   const result = cli.parse();
   if (result instanceof Promise) {
     result.catch((err) => {
-        console.error(`❌ Uncaught Async Error: ${err.message}`);
-        process.exit(EXIT_CODES.GENERIC_ERROR);
+      console.error(`❌ Global Error: ${err.message}`);
+      process.exit(EXIT_CODES.GENERIC_ERROR);
     });
   }
 } catch (error: any) {
-  console.error(`❌ Parse Error: ${error.message}`);
-  process.exit(EXIT_CODES.INVALID_ARGS);
+  if (error.name === 'CACError') {
+    console.error(`❌ Command Error: ${error.message}`);
+    process.exit(EXIT_CODES.INVALID_ARGS);
+  } else {
+    console.error(`❌ Parse Error: ${error.message}`);
+    process.exit(EXIT_CODES.GENERIC_ERROR);
+  }
 }
