@@ -1,4 +1,5 @@
-import { ethers } from 'ethers';
+import { ethers } from '@paynodelabs/sdk-js';
+
 import * as dotenv from 'dotenv';
 import { tmpdir } from 'os';
 import { join, dirname } from 'path';
@@ -19,7 +20,8 @@ if (fs.existsSync('.env')) {
 /**
  * Skill version for JSON output metadata. 
  */
-export const SKILL_VERSION = '2.2.1';
+export const SKILL_VERSION = '2.2.2';
+
 
 /**
  * Network configuration object.
@@ -336,6 +338,7 @@ export function reportError(error: string | Error | any, isJson: boolean, defaul
         console.error(`${prefix} ${message} (Code: ${exitCode})`);
         if (errorCode === 'insufficient_funds') {
             console.error(`💡 Tip: Use 'bun run paynode-402 check' to verify ETH/USDC balances.`);
+            console.error(`💡 Faucet (Testnet): [console.optimism.io/faucet](https://console.optimism.io/faucet)`);
         } else if (errorCode === 'amount_too_low') {
             const min = error?.details?.minimum || 1000;
             console.error(`💡 Tip: Minimum requirement is ${min} units.`);

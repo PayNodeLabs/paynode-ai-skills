@@ -4,8 +4,8 @@ Collect and manage standardized AI skills for the PayNode ecosystem. These skill
 
 ## Navigation
 
-| Skill | Name                     | Description                                                                                          |
-| :---- | :----------------------- | :--------------------------------------------------------------------------------------------------- |
+| Skill | Name                             | Description                                                                                          |
+| :---- | :------------------------------- | :--------------------------------------------------------------------------------------------------- |
 | 💳    | [**payment-402**](./paynode-402) | Access protected resources via the x402 protocol on Base (automated micro-payments, balance checks). |
 
 ## General Skill Specification
@@ -14,7 +14,6 @@ Each skill folder follows a standardized structure:
 
 - **SKILL.md**: The core definition and instruction file for AI agents.
 - **scripts/**: TypeScript source code for specific procedures.
-- **references/**: Documentation and setup guides for testing/debugging.
 - **package.json**: Dependency management.
 
 ## Getting Started

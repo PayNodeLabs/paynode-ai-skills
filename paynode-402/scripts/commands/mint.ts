@@ -39,6 +39,7 @@ export async function mintAction(options: MintOptions) {
         if (balance === 0n && !isJson) {
             console.warn(`\n> [!WARNING]\n> Gas balance is 0 ETH. The mint transaction will fail.`);
             console.warn(`> Please deposit a small amount of ETH to \`${wallet.address}\` on ${networkName}.`);
+            console.warn(`> **Faucet**: [console.optimism.io/faucet](https://console.optimism.io/faucet) — 0.01 ETH daily (Recommended)`);
         }
 
         if (!isJson) {
