@@ -142,8 +142,12 @@ export class MarketplaceClient {
     };
   }
 
-  async getApiDetail(apiId: string): Promise<CatalogApiItem> {
-    const raw = await this.request<any>(`/api/v1/paid-apis/${encodeURIComponent(apiId)}`);
+  async getApiDetail(apiId: string, network?: string): Promise<CatalogApiItem> {
+    const params = new URLSearchParams();
+    if (network) params.set('network', network);
+    const query = params.toString();
+    const path = `/api/v1/paid-apis/${encodeURIComponent(apiId)}${query ? `?${query}` : ''}`;
+    const raw = await this.request<any>(path);
     return normalizeCatalogItem(raw);
   }
 
