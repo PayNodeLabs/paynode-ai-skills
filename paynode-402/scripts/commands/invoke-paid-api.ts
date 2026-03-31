@@ -49,8 +49,7 @@ function parsePayload(data?: string): any {
 }
 
 export async function invokePaidApiAction(apiId: string, options: InvokePaidApiOptions) {
-  console.log(`[DEBUG] Starting invokePaidApiAction for ${apiId}...`);
-  const isJson = !!options.json;
+    const isJson = !!options.json;
 
   try {
     const client = new MarketplaceClient({

@@ -338,6 +338,7 @@ export function reportError(error: string | Error | any, isJson: boolean, defaul
         console.error(`${prefix} ${message} (Code: ${exitCode})`);
         if (errorCode === 'insufficient_funds') {
             console.error(`💡 Tip: Use 'bun run paynode-402 check' to verify ETH/USDC balances.`);
+            console.error(`💡 Faucet (Testnet): [console.optimism.io/faucet](https://console.optimism.io/faucet)`);
         } else if (errorCode === 'amount_too_low') {
             const min = error?.details?.minimum || 1000;
             console.error(`💡 Tip: Minimum requirement is ${min} units.`);
