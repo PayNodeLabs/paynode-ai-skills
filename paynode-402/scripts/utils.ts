@@ -6,17 +6,12 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import pkg from '../package.json';
 
-// --- Environment Loading (Refined) ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Standard priority: CWD .env first, then Skill Root fallback
-const envConfig = fs.existsSync('.env')
-    ? dotenv.config()
-    : dotenv.config({ path: join(__dirname, '../.env') });
-
-if (envConfig.error) {
-    console.error(`⚠️  [Environment] Error loading .env: ${envConfig.error.message}`);
+// --- Environment (System Only) ---
+// [SECURITY] This skill strictly uses system environment variables for better update persistence 
+// and to avoid plaintext private keys on disk. .env files are no longer supported.
+if (!process.env.CLIENT_PRIVATE_KEY) {
+    // We don't exit here because some commands like 'check' or 'mint' provide their own helpful setup tips.
+    // getPrivateKey() will handle the final enforcement.
 }
 
 /**
@@ -24,11 +19,12 @@ if (envConfig.error) {
  * [SECURITY] Consolidates environment variable access for better auditing.
  */
 export const GLOBAL_CONFIG = {
-    MARKETPLACE_URL: 'https://mk.paynode.dev',
+    MARKETPLACE_URL: process.env.PAYNODE_MARKET_URL || 'https://mk.paynode.dev',
     PRIVATE_KEY: process.env.CLIENT_PRIVATE_KEY,
     CUSTOM_ROUTER: process.env.CUSTOM_ROUTER_ADDRESS,
     CUSTOM_USDC: process.env.CUSTOM_USDC_ADDRESS,
-    RPC_URL_OVERRIDE: process.env.RPC_URL // Some users use RPC_URL instead of --rpc flag
+    RPC_URL_OVERRIDE: process.env.PAYNODE_RPC_URL || process.env.RPC_URL,
+    RPC_TIMEOUT: Number(process.env.PAYNODE_RPC_TIMEOUT) || 15_000
 };
 
 /**
@@ -185,8 +181,8 @@ function isTransientError(error: any): boolean {
     );
 }
 
-export const DEFAULT_TASK_DIR = join(tmpdir(), 'paynode-tasks');
-export const DEFAULT_MAX_AGE_SECONDS = 3600;
+export const DEFAULT_TASK_DIR = process.env.PAYNODE_TASK_DIR || join(tmpdir(), 'paynode-tasks');
+export const DEFAULT_MAX_AGE_SECONDS = Number(process.env.PAYNODE_MAX_AGE) || 3600;
 
 export function generateTaskId(): string {
     const ts = Date.now().toString(36);
@@ -241,7 +237,7 @@ export function cleanupOldTasks(taskDir: string, maxAgeSeconds: number): number 
 export function getPrivateKey(isJson: boolean): string {
     const pk: string | undefined = GLOBAL_CONFIG.PRIVATE_KEY;
     if (!pk || typeof pk !== 'string') {
-        reportError('CLIENT_PRIVATE_KEY not found in environment. Check .env file.', isJson, EXIT_CODES.AUTH_FAILURE);
+        reportError('CLIENT_PRIVATE_KEY not found in environment. Please set it as a system environment variable.', isJson, EXIT_CODES.AUTH_FAILURE);
     }
     const pkRegex = /^0x[0-9a-fA-F]{64}$/;
     if (!pkRegex.test(pk)) {

@@ -9,6 +9,11 @@ compatibility: Requires Bun (v1.0+).
 required_env_vars:
   - CLIENT_PRIVATE_KEY
 optional_env_vars:
+  - PAYNODE_MARKET_URL
+  - PAYNODE_RPC_URL
+  - PAYNODE_RPC_TIMEOUT
+  - PAYNODE_TASK_DIR
+  - PAYNODE_MAX_AGE
   - CUSTOM_ROUTER_ADDRESS
   - CUSTOM_USDC_ADDRESS
 required_binaries:
@@ -19,7 +24,7 @@ install: bun install
 
 # 💳 PayNode 402 Protocol Skill (x402-v2, Base & Bun)
 
-Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.2.4) implements the **PayNode Protocol v2.2.2** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
+Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.3.0) implements the **PayNode Protocol v2.2.2** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
 
 It also supports a lightweight paid-API marketplace flow:
 
@@ -39,21 +44,16 @@ Do you have an API or software service you want to monetize for autonomous AI Ag
 
 ## 🚀 Pre-execution Readiness
 
-Before any request, verify the environment and balances:
+Before any request, verify the environment and balances. This skill strictly uses **System Environment Variables** (or CLI flags) to avoid plaintext private keys on disk and ensure configuration persists through skill updates.
 
 1.  **Initialize Dependencies**: Run `bun install` once within this directory.
-2.  **Verify Environment**: Create a `.env` file in the skill root directory.
+2.  **Set Environment Variables**: Ensure `CLIENT_PRIVATE_KEY` is set in your operating system.
 
-    > [!WARNING]
-    > **PLAINTEXT PRIVATE KEY**: The `.env` file stores your private key in **plaintext**. **NEVER** use a primary wallet. Use **ONLY** a dedicated testnet/mainnet burner wallet with minimal balances.
-
-    The agent **MUST** verify the existence and exact format of this variable before proceeding:
-
-    ```env
-    # [REQUIRED] PayNode Burner Wallet Private Key (66-hex chars, starts with 0x)
-    # ⚠️ CAUTION: Use ONLY a dedicated burner wallet with minimal funds.
-    CLIENT_PRIVATE_KEY=0xYourBurnerWalletPrivateKeyHere...
-    ```
+| Operating System | Setup & Refresh Command (Recommended) |
+| :--- | :--- |
+| **Linux / macOS** | `echo 'export CLIENT_PRIVATE_KEY=0x...' >> ~/.bashrc && source ~/.bashrc` |
+| **Windows (PS)** | `[System.Environment]::SetEnvironmentVariable('CLIENT_PRIVATE_KEY','0x...','User')` (And reboot PS) |
+| **Current Session** | `export CLIENT_PRIVATE_KEY=0x...` (Unix) OR `$env:CLIENT_PRIVATE_KEY='0x...'` (PS) |
 
 3.  **Check Balances**: Run `bun run paynode-402 check --json --network <NETWORK>`.
 4.  **Fund Wallet (Testnet)**:
@@ -71,8 +71,8 @@ Before any request, verify the environment and balances:
 
 ```json
 {
-  "version": "2.2.4",
-  "skill_version": "2.2.4",
+  "version": "2.3.0",
+  "skill_version": "2.3.0",
   "sdk_version": "2.2.2",
   "status": "success",
   "address": "0x...",
@@ -153,8 +153,8 @@ bun run paynode-402 request "https://api.example.com/data" \
 
 # Immediate output:
 # {
-#   "version": "2.2.4",
-#   "skill_version": "2.2.4",
+#   "version": "2.3.0",
+#   "skill_version": "2.3.0",
 #   "sdk_version": "2.2.2",
 #   "status": "pending",
 #   "task_id": "m2k8x-a1b2",
@@ -169,8 +169,8 @@ cat <TMPDIR>/paynode-tasks/m2k8x-a1b2.json
 
 # Completed result:
 # {
-#   "version": "2.2.4",
-#   "skill_version": "2.2.4",
+#   "version": "2.3.0",
+#   "skill_version": "2.3.0",
 #   "sdk_version": "2.2.2",
 #   "status": "completed",
 #   "task_id": "m2k8x-a1b2",
@@ -209,6 +209,16 @@ If the API returns binary data (images, audio, video, PDF, etc.), the response i
 
 ---
 
+### 🔄 Background Life-cycle & Ephemeral Trace (`always:false`)
+
+When using `--background`, this skill detaches a child process to handle the x402 payment flow asynchronously. 
+
+- **Trace Persistence**: Task output (including transaction responses) and stderr logs are written to the local disk (default: `/tmp/paynode-tasks/`). These files are **ephemeral** and will be auto-deleted on next execution if they exceed `--max-age` (default: 1h).
+- **Process Isolation**: The background child process operates with a **strict environmental whitelist** (filtering non-essential environment variables) to minimize exposure. However, it **does** inherit the `CLIENT_PRIVATE_KEY` to perform on-chain signing.
+- **Independence**: The child process runs independently of the main agent session. If the agent session is terminated, the payment worker continues until completion or failure.
+
+---
+
 ## 🛡️ Security Rules & Agent Safety
 
 > [!IMPORTANT]
@@ -217,7 +227,7 @@ If the API returns binary data (images, audio, video, PDF, etc.), the response i
 ### 💸 Burner Wallet Policy (Minimal Exposure)
 
 > [!CAUTION]
-> **STRICT BURNER WALLET ONLY**: The `CLIENT_PRIVATE_KEY` **MUST** belong to a dedicated "burner" wallet acting as petty cash. Because the key is stored in **plaintext** in the `.env` file, it is vulnerable to any process or user with read access to the filesystem.
+> **STRICT BURNER WALLET ONLY**: The `CLIENT_PRIVATE_KEY` **MUST** belong to a dedicated "burner" wallet acting as petty cash. Because the key is often stored in **plaintext environment variables**, it is vulnerable to any process or user with read access to the process memory or environment.
 
 **NEVER** hold excessive funds. Maintain balances strictly sufficient for immediate tasks (e.g., < 10 USDC). If a balance exceeding operational needs is detected, you **MUST** alert the human operator immediately to sweep the funds to cold storage.
 
@@ -265,7 +275,7 @@ Both are safe as long as you follow the **Burner Wallet Policy** and NEVER use y
   - `0`: Success.
   - `1`: Generic error.
   - `2`: Invalid arguments.
-  - `3`: Auth Failure (Check `.env` key format).
+  - `3`: Auth Failure (Check `CLIENT_PRIVATE_KEY` presence/format).
   - `4`: Network/RPC Failure.
   - `5`: Mainnet rejected (missing `--confirm-mainnet`).
   - `6`: Payment failed (Transaction reverted).
