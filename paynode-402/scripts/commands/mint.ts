@@ -1,19 +1,15 @@
-import { ethers } from 'ethers';
+import { ethers } from '@paynodelabs/sdk-js';
 import {
     getPrivateKey,
     resolveNetwork,
-    requireMainnetConfirmation,
     reportError,
     jsonEnvelope,
     withRetry,
-    EXIT_CODES
+    EXIT_CODES,
+    BaseCliOptions
 } from '../utils.ts';
 
-interface MintOptions {
-    network?: string;
-    rpc?: string;
-    json?: boolean;
-    confirmMainnet?: boolean;
+interface MintOptions extends BaseCliOptions {
     amount?: string;
 }
 
@@ -24,7 +20,8 @@ export async function mintAction(options: MintOptions) {
     try {
         const { provider, usdcAddress, chainId, networkName, isSandbox } = await resolveNetwork(
             options.rpc,
-            options.network || 'testnet'
+            options.network || 'testnet',
+            options.rpcTimeout
         );
 
         if (!isSandbox) {
@@ -36,12 +33,17 @@ export async function mintAction(options: MintOptions) {
 
         // Gas check
         const balance = await provider.getBalance(wallet.address);
-        if (balance === 0n && !isJson) {
-            console.warn(`\n> [!WARNING]\n> Gas balance is 0 ETH. The mint transaction will fail.`);
-            console.warn(`> Please deposit a small amount of ETH to \`${wallet.address}\` on ${networkName}.`);
-            console.warn(`> **Faucet**: [console.optimism.io/faucet](https://console.optimism.io/faucet) — 0.01 ETH daily (Recommended)`);
+        if (balance === 0n) {
+            reportError(
+                `Gas balance is 0 ETH on ${networkName}. Please fund \`${wallet.address}\` to continue.\n` +
+                `💡 **Faucet**: [console.optimism.io/faucet](https://console.optimism.io/faucet) — 0.01 ETH daily (Recommended)`,
+                isJson,
+                EXIT_CODES.INSUFFICIENT_FUNDS
+            );
         }
 
+        // Progress messages are sent to stderr to avoid polluting stdout 
+        // when valid JSON output is expected by the caller (e.g. via --json)
         if (!isJson) {
             console.error(`💰 Connecting to ${networkName}...`);
             console.error(`🔗 Minting ${mintAmountStr} USDC for address: ${wallet.address}`);
@@ -50,7 +52,7 @@ export async function mintAction(options: MintOptions) {
         const abi = ['function mint(address to, uint256 amount) external'];
         const usdc = new ethers.Contract(usdcAddress, abi, wallet);
 
-        const amount = ethers.parseUnits(mintAmountStr.toString(), 6);
+        const amount = ethers.parseUnits(mintAmountStr, 6);
 
         if (!isJson) console.error('⏳ Sending mint transaction...');
         const tx = await withRetry(

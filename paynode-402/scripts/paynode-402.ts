@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { cac } from 'cac';
+import pkg from '../package.json';
 import { checkAction } from './commands/check.ts';
 import { mintAction } from './commands/mint.ts';
 import { requestAction } from './commands/request.ts';
@@ -14,9 +15,10 @@ const cli = cac('paynode-402');
 cli.option('--json', 'Output results in JSON format');
 cli.option('--network <name>', 'Network to use: mainnet or testnet/sepolia');
 cli.option('--rpc <url>', 'Custom RPC URL');
+cli.option('--rpc-timeout <ms>', 'Custom RPC timeout in milliseconds (default: 15000)');
 cli.option('--confirm-mainnet', 'Required flag for mainnet operations (real USDC)');
 cli.option('--dry-run', 'Show request details without sending');
-cli.option('--market-url <url>', 'Marketplace base URL (overrides PAYNODE_MARKETPLACE_URL)');
+cli.option('--market-url <url>', 'Marketplace base URL');
 
 // Command: check
 cli
@@ -35,7 +37,7 @@ cli
 
 // Command: request
 cli
-  .command('request <url> [...params]', 'Access protected API and handle x402 payments')
+  .command('request <url> [...params]', 'Access protected API and handle x402 payments. Params: key=value pairs for query/body.')
   .option('-X, --method <method>', 'HTTP method (GET, POST, etc.)')
   .option('-d, --data <data>', 'Raw request body data')
   .option('-H, --header [header]', 'HTTP header in "Key: Value" format (can be used multiple times)', { default: [] })
@@ -80,7 +82,6 @@ cli
     return invokePaidApiAction(apiId, options);
   });
 
-import pkg from '../package.json';
 
 cli.help();
 cli.version(pkg.version);
@@ -89,11 +90,16 @@ try {
   const result = cli.parse();
   if (result instanceof Promise) {
     result.catch((err) => {
-        console.error(`❌ Uncaught Async Error: ${err.message}`);
-        process.exit(EXIT_CODES.GENERIC_ERROR);
+      console.error(`❌ Global Error: ${err.message}`);
+      process.exit(EXIT_CODES.GENERIC_ERROR);
     });
   }
 } catch (error: any) {
-  console.error(`❌ Parse Error: ${error.message}`);
-  process.exit(EXIT_CODES.INVALID_ARGS);
+  if (error.name === 'CACError') {
+    console.error(`❌ Command Error: ${error.message}`);
+    process.exit(EXIT_CODES.INVALID_ARGS);
+  } else {
+    console.error(`❌ Parse Error: ${error.message}`);
+    process.exit(EXIT_CODES.GENERIC_ERROR);
+  }
 }

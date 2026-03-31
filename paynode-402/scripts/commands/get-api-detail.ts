@@ -1,9 +1,7 @@
 import { MarketplaceClient } from '../marketplace/client.ts';
-import { jsonEnvelope, reportError, EXIT_CODES } from '../utils.ts';
+import { jsonEnvelope, reportError, EXIT_CODES, BaseCliOptions } from '../utils.ts';
 
-interface GetApiDetailOptions {
-  json?: boolean;
-  marketUrl?: string;
+interface GetApiDetailOptions extends BaseCliOptions {
 }
 
 export async function getApiDetailAction(apiId: string, options: GetApiDetailOptions) {

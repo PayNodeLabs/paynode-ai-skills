@@ -1,9 +1,20 @@
-import { jsonEnvelope, reportError, withRetry, EXIT_CODES } from '../utils.ts';
+import { jsonEnvelope, reportError, withRetry, EXIT_CODES, GLOBAL_CONFIG } from '../utils.ts';
 import type { CatalogApiItem, CatalogListResponse, InvokePreparation } from './types.ts';
 
 export interface MarketplaceClientOptions {
   baseUrl?: string;
   json?: boolean;
+}
+
+export class MarketplaceError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code: string = 'unknown_error'
+  ) {
+    super(message);
+    this.name = 'MarketplaceError';
+  }
 }
 
 export interface ListCatalogOptions {
@@ -24,16 +35,45 @@ function joinUrl(baseUrl: string, path: string): string {
   return `${normalizedBase}${normalizedPath}`;
 }
 
-function normalizeCatalogItem(raw: any): CatalogApiItem {
+export interface RawCatalogApiItem {
+  id?: string;
+  api_id?: string;
+  name?: string;
+  title?: string;
+  api_name?: string;
+  description?: string;
+  tags?: string[];
+  price_per_call?: string | number;
+  price?: string | number;
+  amount?: string | number;
+  currency?: string;
+  network?: string;
+  seller?: any;
+  seller_name?: string;
+  wallet_address?: string;
+  method?: string;
+  http_method?: string;
+  payable_url?: string;
+  payment_url?: string;
+  invoke_url?: string;
+  input_schema?: any;
+  sample_response?: any;
+  headers_template?: any;
+}
+
+function normalizeCatalogItem(raw: RawCatalogApiItem): CatalogApiItem {
   return {
-    id: raw.id || raw.api_id,
-    name: raw.name || raw.title || raw.api_name || raw.api_id,
+    id: raw.id || raw.api_id || '',
+    name: raw.name || raw.title || raw.api_name || raw.api_id || 'unnamed',
     description: raw.description,
     tags: Array.isArray(raw.tags) ? raw.tags : [],
-    price_per_call: raw.price_per_call || raw.price || raw.amount,
+    price_per_call: String(raw.price_per_call || raw.price || raw.amount || '0'),
     currency: raw.currency || 'USDC',
     network: raw.network,
-    seller: raw.seller || {
+    seller: (raw.seller && typeof raw.seller === 'object' && Object.keys(raw.seller).length > 0) ? {
+      name: raw.seller.name || raw.seller.seller_name,
+      wallet_address: raw.seller.wallet_address || raw.seller.address
+    } : {
       name: raw.seller_name,
       wallet_address: raw.wallet_address
     },
@@ -42,8 +82,7 @@ function normalizeCatalogItem(raw: any): CatalogApiItem {
     invoke_url: raw.invoke_url,
     input_schema: raw.input_schema,
     sample_response: raw.sample_response,
-    headers_template: raw.headers_template,
-    ...raw
+    headers_template: raw.headers_template
   };
 }
 
@@ -52,16 +91,8 @@ export class MarketplaceClient {
   private readonly isJson: boolean;
 
   constructor(options: MarketplaceClientOptions = {}) {
-    this.baseUrl = options.baseUrl || process.env.PAYNODE_MARKETPLACE_URL || '';
+    this.baseUrl = options.baseUrl || GLOBAL_CONFIG.MARKETPLACE_URL;
     this.isJson = !!options.json;
-
-    if (!this.baseUrl) {
-      reportError(
-        'PAYNODE_MARKETPLACE_URL is not configured. Set it in the environment or pass --market-url.',
-        this.isJson,
-        EXIT_CODES.INVALID_ARGS
-      );
-    }
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -74,41 +105,31 @@ export class MarketplaceClient {
     if (!response.ok) {
       const text = await response.text();
       let errorMessage = `Marketplace request failed (${response.status}) at ${path}: ${text || 'empty response'}`;
+      let errorCode = 'unknown_error';
       try {
         const json = JSON.parse(text);
         if (json.message) errorMessage = json.message;
-        const err = new Error(errorMessage) as any;
-        err.status = response.status;
-        err.code = json.code || json.error;
-        throw err;
-      } catch {
-        throw new Error(errorMessage);
-      }
+        errorCode = json.code || json.error || errorCode;
+      } catch { /* use defaults if parse fails */ }
+
+      throw new MarketplaceError(errorMessage, response.status, errorCode);
     }
 
     return await response.json() as T;
   }
 
   async listCatalog(options: ListCatalogOptions = {}): Promise<CatalogListResponse> {
-    const url = new URL(joinUrl(this.baseUrl, '/api/v1/paid-apis'));
-    if (options.network) url.searchParams.set('network', options.network);
-    if (options.limit) url.searchParams.set('limit', String(options.limit));
-    if (options.seller) url.searchParams.set('seller', options.seller);
+    const params = new URLSearchParams();
+    if (options.network) params.set('network', options.network);
+    if (options.limit) params.set('limit', String(options.limit));
+    if (options.seller) params.set('seller', options.seller);
     for (const tag of options.tag || []) {
-      url.searchParams.append('tag', tag);
+      params.append('tag', tag);
     }
 
-    const response = await withRetry(
-      () => fetch(url.toString()),
-      'marketplace:list'
-    );
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Marketplace catalog request failed (${response.status}): ${body || 'empty response'}`);
-    }
-
-    const raw = await response.json() as any;
+    const query = params.toString();
+    const path = `/api/v1/paid-apis${query ? `?${query}` : ''}`;
+    const raw = await this.request<any>(path);
     const items = Array.isArray(raw.items)
       ? raw.items.map(normalizeCatalogItem)
       : Array.isArray(raw)
@@ -135,7 +156,7 @@ export class MarketplaceClient {
         },
         body: JSON.stringify({
           network: options.network,
-          payload: options.payload || {}
+          payload: options.payload ?? {}
         })
       });
 
@@ -157,7 +178,7 @@ export class MarketplaceClient {
         invoke_url: invokeUrl,
         method: detail.method || 'POST',
         headers: detail.headers_template || {},
-        body: options.payload || {}
+        body: options.payload ?? {}
       };
     }
   }
