@@ -171,7 +171,7 @@ export class MarketplaceClient {
       return preparation;
     } catch (err: any) {
       console.warn(`[Marketplace] /invoke preparation failed for ${apiId}, falling back to direct proxy. Error: ${err.message}`);
-      const detail = await this.getApiDetail(apiId);
+      const detail = await this.getApiDetail(apiId, options.network);
       const invokeUrl = detail.payable_url || detail.invoke_url;
       if (!invokeUrl) {
         throw new Error(`API '${apiId}' is missing payable_url/invoke_url and marketplace did not provide an invoke preparation.`);
