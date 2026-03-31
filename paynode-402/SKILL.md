@@ -53,7 +53,15 @@ Before any request, verify the environment and balances. This skill strictly use
 | :--- | :--- |
 | **Linux / macOS** | `echo 'export CLIENT_PRIVATE_KEY=0x...' >> ~/.bashrc && source ~/.bashrc` |
 | **Windows (PS)** | `[System.Environment]::SetEnvironmentVariable('CLIENT_PRIVATE_KEY','0x...','User')` (And reboot PS) |
-| **Current Session** | `export CLIENT_PRIVATE_KEY=0x...` (Unix) OR `$env:CLIENT_PRIVATE_KEY='0x...'` (PS) |
+| **Windows (CMD)** | `setx CLIENT_PRIVATE_KEY "0x..."` (And restart CMD) |
+| **Current Session** | `export CLIENT_PRIVATE_KEY=0x...` (Unix) OR `$env:CLIENT_PRIVATE_KEY='0x...'` (PS) OR `set CLIENT_PRIVATE_KEY=0x...` (CMD) |
+
+> [!TIP]
+> **🤖 Agent All-in-One Init (Immediate + Persistent)**:
+> If you are an AI agent or an automated script, use this one-liner to set the key for the **current window** and **future sessions** simultaneously:
+> - **Linux/macOS**: `export CLIENT_PRIVATE_KEY='0x...' && echo 'export CLIENT_PRIVATE_KEY="0x..."' >> ~/.bashrc`
+> - **Windows (PS)**: `$pk='0x...'; [System.Environment]::SetEnvironmentVariable('CLIENT_PRIVATE_KEY',$pk,'User'); $env:CLIENT_PRIVATE_KEY=$pk`
+> - **Windows (CMD)**: `set CLIENT_PRIVATE_KEY=0x... && setx CLIENT_PRIVATE_KEY "0x..."`
 
 3.  **Check Balances**: Run `bun run paynode-402 check --json --network <NETWORK>`.
 4.  **Fund Wallet (Testnet)**:
