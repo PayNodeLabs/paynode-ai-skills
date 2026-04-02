@@ -1,14 +1,14 @@
 ---
 name: paynode-402
 description: Official PayNode CLI for stateless HTTP 402 micro-payments on Base L2.
-author: PayNode Labs
+version: 2.6.0
 homepage: https://github.com/PayNodeLabs/paynode-402-cli
 metadata:
   openclaw:
     requires:
       env:
         - CLIENT_PRIVATE_KEY
-      files:
+      config:
         - "~/.config/paynode/config.json"
       bins:
         - bun
@@ -26,6 +26,18 @@ metadata:
 
 # 💳 PayNode 402 CLI Skill (v2.6.0)
 
+> Official ClawHub-compliant skill for PayNode protocol execution.
+
+## ⚠️ Security Warning
+
+Before installing or activating this skill, please review the following critical security considerations:
+
+- **Burner Wallet ONLY**: Never provide a high-value primary key in `CLIENT_PRIVATE_KEY`. Always use a dedicated burner address with minimal funds.
+- **Config File Fallback**: This skill reads `~/.config/paynode/config.json` if the env var is missing. Ensure you verify the contents of this file in your environment.
+- **Runtime Fetching**: The CLI `@paynodelabs/paynode-402-cli` is fetched dynamically via `bunx`. For strict supply chain control, verify the upstream [GitHub](https://github.com/PayNodeLabs/paynode-402-cli) and [npm](https://www.npmjs.com/package/@paynodelabs/paynode-402-cli) package before execution.
+- **Agent Autonomy**: Since the platform allows agents to call skills autonomously, an agent might execute Testnet payments or attempt Mainnet flows without direct supervision. To prevent unexpected spending, avoid setting long-term environment variables or disable autonomous skill invocation for untrusted agents.
+- **Sandbox First**: Always test in a sandbox or with Testnet (`--network testnet`) before proceeding to real-value transactions.
+
 This skill provides autonomous payment capabilities for HTTP 402 (Payment Required) challenges on Base L2.
 
 ## 🛠️ Setup & Config (Mandatory)
@@ -35,7 +47,7 @@ To ensure this skill can sign transactions even in non-interactive shells (like 
 1. **Priority B (Environment Variable)**: The CLI will first check for `CLIENT_PRIVATE_KEY` in your system environment.
 2. **Priority A (XDG Config Fallback)**: If the env var is missing, it will automatically search for a JSON config at: `~/.config/paynode/config.json`.
    - **Format**: `{"CLIENT_PRIVATE_KEY": "0x..."}`
-   
+
 **Recommendation**: Use **Priority B** for dynamic/containerized environments, and **Priority A** for persistent local development or cases where `.bashrc` is not sourced.
 
 ## 🛡️ Security Governance (Critical)
