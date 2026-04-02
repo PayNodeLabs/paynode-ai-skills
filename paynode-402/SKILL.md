@@ -22,7 +22,7 @@ metadata:
         tasks              Manage background tasks
 ---
 
-# 💳 PayNode 402 CLI Skill (v2.5.2)
+# 💳 PayNode 402 CLI Skill (v2.6.0)
 
 This skill provides autonomous payment capabilities for HTTP 402 (Payment Required) challenges on Base L2.
 
