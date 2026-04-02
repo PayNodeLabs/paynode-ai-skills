@@ -8,6 +8,8 @@ metadata:
     requires:
       env:
         - CLIENT_PRIVATE_KEY
+      files:
+        - "~/.config/paynode/config.json"
       bins:
         - bun
     primaryEnv: CLIENT_PRIVATE_KEY
@@ -36,18 +38,18 @@ To ensure this skill can sign transactions even in non-interactive shells (like 
    
 **Recommendation**: Use **Priority B** for dynamic/containerized environments, and **Priority A** for persistent local development or cases where `.bashrc` is not sourced.
 
-## 🛡️ Security Governance (Mandatory)
+## 🛡️ Security Governance (Critical)
 
-To comply with **ClawHub Safety Standards**, the Agent MUST follow these protocols:
+To comply with **ClawHub Safety Standards**, the Agent MUST strictly follow these protocols:
 
-1. **Mandatory Confirmation**: Before calling `request` or `invoke-paid-api` on **Mainnet**, you MUST display the target URL, price, and network to the user and request explicit "YES" confirmation.
-2. **Burner Wallet Policy**: Advise users to use a dedicated burner wallet for this skill. Never store high-value primary keys in any config file.
-3. **Binary Path Isolation**: The `data_binary` field returns a local filesystem path. You MUST only read this path if it was generated during your current task.
-4. **No Parameter Hallucination**: When using `invoke-paid-api`, you MUST first call `get-api-detail <ID>` to fetch the exact `input_schema`. NEVER guess or hallucinate parameters.
+1. **Burner Wallet ONLY**: Never use high-value primary keys. Advise users to use a dedicated burner address with minimal USDC/ETH for this skill.
+2. **Mainnet YES-Confirmation**: Before calling `request` or `invoke-paid-api` on **Mainnet**, the Agent MUST explicitly prompt the user: "Allow payment of <PRICE> on Mainnet?". Proceed ONLY on "YES".
+3. **Data Path Isolation**: The `data_binary` field returns a local filesystem path. Only read this path if generated during the current session's request.
+4. **No Parameter Hallucination**: ALWAYS call `get-api-detail <ID>` to fetch the correct `input_schema` before execution.
 
-## 🚀 Cold Start Workflow
+## 🚀 Cold Start (Network Operations)
 
-To ensure accuracy, the first action after loading this skill MUST be:
+The first action MUST be indexing the marketplace (**Outbound request**). Use this to understand current offerings:
 
 ```bash
 bunx @paynodelabs/paynode-402-cli list-paid-apis --network testnet --json --limit 5
