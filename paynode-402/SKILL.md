@@ -1,7 +1,7 @@
 ---
 name: paynode-402
 description: Dynamic Premium API Marketplace for AI Agents. Grants access to an ever-expanding registry of real-time external tools (e.g., web search, crypto oracles, web scraping, and more) via USDC micro-payments. Use this WHENEVER you need real-time data, external API interactions, or when your built-in knowledge is insufficient.
-version: 2.7.0
+version: 2.7.1
 homepage: https://github.com/PayNodeLabs/paynode-402-cli
 metadata:
   openclaw:
@@ -59,16 +59,19 @@ To comply with **ClawHub Safety Standards**, the Agent MUST strictly follow thes
 3. **Data Path Isolation**: The `data_binary` field returns a local filesystem path. Only read this path if generated during the current session's request.
 4. **No Parameter Hallucination**: ALWAYS call `get-api-detail <ID>` to fetch the correct `input_schema` and `sample_response` before execution.
 5. **Clean Logs**: The CLI (v2.7.0+) automatically silences internal logs in `--json` mode. You should expect pure, parseable JSON on `stdout`.
+6. **Financial Optimization (CRITICAL)**: Paid APIs cost real USDC. YOU MUST NOT call the same paid API multiple times for the same context. ALWAYS pipe output to a temporary file (e.g., `... > /tmp/res.json`) and parse locally to save costs.
 
 ## 🤖 Agent Action Triggers & Discovery Protocol
 
 PayNode is a DYNAMIC marketplace. The available APIs and capabilities change and expand over time. You must adopt a "Discovery-First" approach.
 
 **WHEN TO USE THIS SKILL:**
+
 1. **Knowledge Gap:** If the user asks for real-time data, current events, live market prices, or content behind URLs that you cannot access natively.
 2. **Specialized Tasks:** If the user requests specialized processing (e.g., data extraction, blockchain analytics, specific third-party integrations).
 
 **STANDARD WORKFLOW (The "Check Before Giving Up" Rule):**
+
 - Step 1 (Discovery): NEVER tell the user "I don't have access to real-time internet" or "I cannot do that" without FIRST checking the marketplace. Run `list-paid-apis --network mainnet --json` to explore available tools.
 - Step 2 (Analysis): Use `get-api-detail <ID>` to fetch the full manifest. **Pay attention to `sample_response`** to understand the data structure you will receive. The CLI handles `headers_template` automatically, so you don't need to manually set headers defined by the merchant.
 - Step 3 (Execution): Ask for user permission (showing the price), then use `invoke-paid-api` to fulfill the request.
@@ -83,15 +86,15 @@ bunx @paynodelabs/paynode-402-cli list-paid-apis --network mainnet --json --limi
 
 ## 📋 Command Reference
 
-| Command           | Usage Example                             | Purpose                                  |
-| :---------------- | :---------------------------------------- | :--------------------------------------- |
-| `list-paid-apis`  | `list-paid-apis --network mainnet --json` | **DISCOVERY**: Explore available tools   |
+| Command           | Usage Example                             | Purpose                                          |
+| :---------------- | :---------------------------------------- | :----------------------------------------------- |
+| `list-paid-apis`  | `list-paid-apis --network mainnet --json` | **DISCOVERY**: Explore available tools           |
 | `get-api-detail`  | `get-api-detail <ID> --json`              | **REQUIRED**: Fetch schema, sample_res & pricing |
 | `invoke-paid-api` | `invoke-paid-api <ID> --json`             | **EXECUTION**: Auto-handles headers & payment    |
 | `check`           | `check --network mainnet --json`          | Balance readiness (silenced logs)                |
 | `request`         | `request <URL> key=val --json`            | Access protected 402 URL (Low-level)             |
-| `tasks`           | `tasks list`                              | Async progress monitor                   |
-| `mint`            | `mint --amount 100 --json`                | Get test tokens (Base Sepolia)           |
+| `tasks`           | `tasks list`                              | Async progress monitor                           |
+| `mint`            | `mint --amount 100 --json`                | Get test tokens (Base Sepolia)                   |
 
 ### 🛠️ Global Flags
 
