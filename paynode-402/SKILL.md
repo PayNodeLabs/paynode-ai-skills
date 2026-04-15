@@ -1,7 +1,7 @@
 ---
 name: paynode-402
 description: Dynamic Premium API Marketplace for AI Agents. Grants access to an ever-expanding registry of real-time external tools (e.g., web search, crypto oracles, web scraping, and more) via USDC micro-payments. Use this WHENEVER you need real-time data, external API interactions, or when your built-in knowledge is insufficient.
-version: 2.7.1
+version: 2.7.2
 homepage: https://github.com/PayNodeLabs/paynode-402-cli
 metadata:
   openclaw:
@@ -34,8 +34,9 @@ Before installing or activating this skill, please review the following critical
 
 - **Burner Wallet ONLY**: Never provide a high-value primary key in `CLIENT_PRIVATE_KEY`. Always use a dedicated burner address with minimal funds.
 - **Config File Fallback**: This skill reads `~/.config/paynode/config.json` if the env var is missing. Ensure you verify the contents of this file in your environment.
-- **Runtime Fetching**: The CLI `@paynodelabs/paynode-402-cli` is fetched dynamically via `bunx`. For strict supply chain control, verify the upstream [GitHub](https://github.com/PayNodeLabs/paynode-402-cli) and [npm](https://www.npmjs.com/package/@paynodelabs/paynode-402-cli) package before execution.
-- **Agent Autonomy**: Since the platform allows agents to call skills autonomously, an agent might execute Testnet payments or attempt Mainnet flows without direct supervision. To prevent unexpected spending, avoid setting long-term environment variables or disable autonomous skill invocation for untrusted agents.
+- **Supply Chain & Auditability**: The [PayNode CLI](https://github.com/PayNodeLabs/paynode-402-cli) and its core dependency [@paynodelabs/sdk-js](https://github.com/PayNodeLabs/paynode-sdk-js) are **100% Open Source** and verifiable. While we use `bunx` for its seamless update delivery, strict environments should **Git clone & audit** the source code and use a local build:
+  - _Local Install Path_: `git clone ... && bun link` then use `paynode-402` directly instead of `bunx`.
+- **Runtime Transparency**: The CLI v2.7.0+ is designed to be deterministic. You can pin specific versions via `bunx @paynodelabs/paynode-402-cli@<VERSION>` to prevent auto-updates in critical workflows.
 - **Sandbox First**: Always test in a sandbox or with Testnet (`--network testnet`) before proceeding to real-value transactions.
 
 This skill provides autonomous payment capabilities for HTTP 402 (Payment Required) challenges on Base L2.
@@ -60,6 +61,20 @@ To comply with **ClawHub Safety Standards**, the Agent MUST strictly follow thes
 4. **No Parameter Hallucination**: ALWAYS call `get-api-detail <ID>` to fetch the correct `input_schema` and `sample_response` before execution.
 5. **Clean Logs**: The CLI (v2.7.0+) automatically silences internal logs in `--json` mode. You should expect pure, parseable JSON on `stdout`.
 6. **Financial Optimization (CRITICAL)**: Paid APIs cost real USDC. YOU MUST NOT call the same paid API multiple times for the same context. ALWAYS pipe output to a temporary file (e.g., `... > /tmp/res.json`) and parse locally to save costs.
+
+## 💡 Quick Start (Success Path)
+
+```bash
+# 1. Verify your mainnet readiness
+bunx @paynodelabs/paynode-402-cli check --network mainnet --json
+
+# 2. Find a tool (Discovery Phase)
+bunx @paynodelabs/paynode-402-cli list-paid-apis --network mainnet --json --limit 3
+
+# 3. Get precise parameters & execute
+bunx @paynodelabs/paynode-402-cli get-api-detail crypto-price-quick --json
+bunx @paynodelabs/paynode-402-cli invoke-paid-api crypto-price-quick coin_id=bitcoin --json
+```
 
 ## 🤖 Agent Action Triggers & Discovery Protocol
 
@@ -86,15 +101,15 @@ bunx @paynodelabs/paynode-402-cli list-paid-apis --network mainnet --json --limi
 
 ## 📋 Command Reference
 
-| Command           | Usage Example                             | Purpose                                          |
-| :---------------- | :---------------------------------------- | :----------------------------------------------- |
-| `list-paid-apis`  | `list-paid-apis --network mainnet --json` | **DISCOVERY**: Explore available tools           |
-| `get-api-detail`  | `get-api-detail <ID> --json`              | **REQUIRED**: Fetch schema, sample_res & pricing |
-| `invoke-paid-api` | `invoke-paid-api <ID> --json`             | **EXECUTION**: Auto-handles headers & payment    |
-| `check`           | `check --network mainnet --json`          | Balance readiness (silenced logs)                |
-| `request`         | `request <URL> key=val --json`            | Access protected 402 URL (Low-level)             |
-| `tasks`           | `tasks list`                              | Async progress monitor                           |
-| `mint`            | `mint --amount 100 --json`                | Get test tokens (Base Sepolia)                   |
+| Command           | Usage Example                             | Purpose                                                      |
+| :---------------- | :---------------------------------------- | :----------------------------------------------------------- |
+| `list-paid-apis`  | `list-paid-apis --network mainnet --json` | **DISCOVERY**: Explore available tools                       |
+| `get-api-detail`  | `get-api-detail <ID> --json`              | **REQUIRED**: Fetch schema, sample_res & pricing             |
+| `invoke-paid-api` | `invoke-paid-api <ID> key=val --json`     | **EXECUTION**: Auto-handles payment. Use `key=value` format. |
+| `check`           | `check --network mainnet --json`          | Balance readiness (silenced logs)                            |
+| `request`         | `request <URL> key=val --json`            | Access protected 402 URL (Low-level)                         |
+| `tasks`           | `tasks list`                              | Async progress monitor                                       |
+| `mint`            | `mint --amount 100 --json`                | Get test tokens (Base Sepolia)                               |
 
 ### 🛠️ Global Flags
 
@@ -104,9 +119,32 @@ bunx @paynodelabs/paynode-402-cli list-paid-apis --network mainnet --json --limi
 
 ---
 
+## 🔧 Troubleshooting & Debugging
+
+- **`402 Handshake Failure`**: Ensure `CLIENT_PRIVATE_KEY` is valid and the wallet has a tiny amount of native ETH for base fee, even on Testnet.
+- **`Insufficient USDC`**: Run `check` to verify your balance. On Testnet, use `mint` to get 1000 USDC instantly.
+- **`Provider Error`**: High RPC latency can skip verification. The CLI v2.7.0 includes 3x retry logic, but ensure your network connection is stable.
+- **`Transaction Pending`**: Wait 5-10 seconds for L2 finality. Use [BaseScan](https://basescan.org) to verify:
+  - Track transactions: `https://basescan.org/tx/<TX_HASH>`
+  - Check wallet status: `https://basescan.org/address/<YOUR_ADDRESS>`
+
+---
+
+## 🛡️ Security & Environment
+
+- **Environment Priority**: ALWAYS prioritize **`mainnet`** for production tasks to ensure access to real-time, high-fidelity data.
+- **Testing & Debug**: Use `testnet` (Base Sepolia) only for initial integration testing, connectivity debugging, or development.
+- **Wallet Safety**: Use a **Burner Wallet** with minimum required funds. Never use a primary vault key.
+- **Required Flags**: Mainnet execution requires the `--confirm-mainnet` flag to prevent accidental spending.
+- **Data Integrity**: Always use the `--json` flag for consistent agentic parsing.
+
+---
+
 ## 🔗 Resources
 
-- **GitHub**: [PayNodeLabs/paynode-402-cli](https://github.com/PayNodeLabs/paynode-402-cli)
-- **Faucet**: [Base Official Faucets](https://docs.base.org/docs/development/faucets)
-- **NPM**: [@paynodelabs/paynode-402-cli](https://www.npmjs.com/package/@paynodelabs/paynode-402-cli)
+- **CLI (GitHub)**: [PayNodeLabs/paynode-402-cli](https://github.com/PayNodeLabs/paynode-402-cli)
+- **CLI (NPM)**: [@paynodelabs/paynode-402-cli](https://www.npmjs.com/package/@paynodelabs/paynode-402-cli)
+- **SDK (GitHub)**: [PayNodeLabs/paynode-sdk-js](https://github.com/PayNodeLabs/paynode-sdk-js)
+- **SDK (NPM)**: [@paynodelabs/sdk-js](https://www.npmjs.com/package/@paynodelabs/sdk-js)
+- **Faucet**: [Base Official Faucets](https://docs.base.org/base-chain/network-information/network-faucets#network-faucets)
 - **Protocol**: [PayNode Specification](https://docs.paynode.dev)
