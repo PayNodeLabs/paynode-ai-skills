@@ -34,8 +34,9 @@ Before installing or activating this skill, please review the following critical
 
 - **Burner Wallet ONLY**: Never provide a high-value primary key in `CLIENT_PRIVATE_KEY`. Always use a dedicated burner address with minimal funds.
 - **Config File Fallback**: This skill reads `~/.config/paynode/config.json` if the env var is missing. Ensure you verify the contents of this file in your environment.
-- **Runtime Fetching**: The CLI `@paynodelabs/paynode-402-cli` is fetched dynamically via `bunx`. For strict supply chain control, verify the upstream [GitHub](https://github.com/PayNodeLabs/paynode-402-cli) and [npm](https://www.npmjs.com/package/@paynodelabs/paynode-402-cli) package before execution.
-- **Agent Autonomy**: Since the platform allows agents to call skills autonomously, an agent might execute Testnet payments or attempt Mainnet flows without direct supervision. To prevent unexpected spending, avoid setting long-term environment variables or disable autonomous skill invocation for untrusted agents.
+- **Supply Chain & Auditability**: The [PayNode CLI](https://github.com/PayNodeLabs/paynode-402-cli) and its core dependency [@paynodelabs/sdk-js](https://github.com/PayNodeLabs/paynode-sdk-js) are **100% Open Source** and verifiable. While we use `bunx` for its seamless update delivery, strict environments should **Git clone & audit** the source code and use a local build:
+  - _Local Install Path_: `git clone ... && bun link` then use `paynode-402` directly instead of `bunx`.
+- **Runtime Transparency**: The CLI v2.7.0+ is designed to be deterministic. You can pin specific versions via `bunx @paynodelabs/paynode-402-cli@<VERSION>` to prevent auto-updates in critical workflows.
 - **Sandbox First**: Always test in a sandbox or with Testnet (`--network testnet`) before proceeding to real-value transactions.
 
 This skill provides autonomous payment capabilities for HTTP 402 (Payment Required) challenges on Base L2.
@@ -141,7 +142,9 @@ bunx @paynodelabs/paynode-402-cli list-paid-apis --network mainnet --json --limi
 
 ## 🔗 Resources
 
-- **GitHub**: [PayNodeLabs/paynode-402-cli](https://github.com/PayNodeLabs/paynode-402-cli)
-- **Faucet**: [Base Official Faucets](https://docs.base.org/docs/development/faucets)
-- **NPM**: [@paynodelabs/paynode-402-cli](https://www.npmjs.com/package/@paynodelabs/paynode-402-cli)
+- **CLI (GitHub)**: [PayNodeLabs/paynode-402-cli](https://github.com/PayNodeLabs/paynode-402-cli)
+- **CLI (NPM)**: [@paynodelabs/paynode-402-cli](https://www.npmjs.com/package/@paynodelabs/paynode-402-cli)
+- **SDK (GitHub)**: [PayNodeLabs/paynode-sdk-js](https://github.com/PayNodeLabs/paynode-sdk-js)
+- **SDK (NPM)**: [@paynodelabs/sdk-js](https://www.npmjs.com/package/@paynodelabs/sdk-js)
+- **Faucet**: [Base Official Faucets](https://docs.base.org/base-chain/network-information/network-faucets#network-faucets)
 - **Protocol**: [PayNode Specification](https://docs.paynode.dev)
