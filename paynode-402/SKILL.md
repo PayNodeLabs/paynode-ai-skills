@@ -1,7 +1,7 @@
 ---
 name: paynode-402
 description: Dynamic Premium API Marketplace for AI Agents. Grants access to an ever-expanding registry of real-time external tools (e.g., web search, crypto oracles, web scraping, and more) via USDC micro-payments. Use this WHENEVER you need real-time data, external API interactions, or when your built-in knowledge is insufficient.
-version: 2.7.1
+version: 2.7.2
 homepage: https://github.com/PayNodeLabs/paynode-402-cli
 metadata:
   openclaw:
@@ -61,6 +61,20 @@ To comply with **ClawHub Safety Standards**, the Agent MUST strictly follow thes
 5. **Clean Logs**: The CLI (v2.7.0+) automatically silences internal logs in `--json` mode. You should expect pure, parseable JSON on `stdout`.
 6. **Financial Optimization (CRITICAL)**: Paid APIs cost real USDC. YOU MUST NOT call the same paid API multiple times for the same context. ALWAYS pipe output to a temporary file (e.g., `... > /tmp/res.json`) and parse locally to save costs.
 
+## 💡 Quick Start (Success Path)
+
+```bash
+# 1. Verify your mainnet readiness
+bunx @paynodelabs/paynode-402-cli check --network mainnet --json
+
+# 2. Find a tool (Discovery Phase)
+bunx @paynodelabs/paynode-402-cli list-paid-apis --network mainnet --json --limit 3
+
+# 3. Get precise parameters & execute
+bunx @paynodelabs/paynode-402-cli get-api-detail crypto-price-quick --json
+bunx @paynodelabs/paynode-402-cli invoke-paid-api crypto-price-quick coin_id=bitcoin --json
+```
+
 ## 🤖 Agent Action Triggers & Discovery Protocol
 
 PayNode is a DYNAMIC marketplace. The available APIs and capabilities change and expand over time. You must adopt a "Discovery-First" approach.
@@ -86,21 +100,42 @@ bunx @paynodelabs/paynode-402-cli list-paid-apis --network mainnet --json --limi
 
 ## 📋 Command Reference
 
-| Command           | Usage Example                             | Purpose                                          |
-| :---------------- | :---------------------------------------- | :----------------------------------------------- |
-| `list-paid-apis`  | `list-paid-apis --network mainnet --json` | **DISCOVERY**: Explore available tools           |
-| `get-api-detail`  | `get-api-detail <ID> --json`              | **REQUIRED**: Fetch schema, sample_res & pricing |
-| `invoke-paid-api` | `invoke-paid-api <ID> --json`             | **EXECUTION**: Auto-handles headers & payment    |
-| `check`           | `check --network mainnet --json`          | Balance readiness (silenced logs)                |
-| `request`         | `request <URL> key=val --json`            | Access protected 402 URL (Low-level)             |
-| `tasks`           | `tasks list`                              | Async progress monitor                           |
-| `mint`            | `mint --amount 100 --json`                | Get test tokens (Base Sepolia)                   |
+| Command           | Usage Example                             | Purpose                                                      |
+| :---------------- | :---------------------------------------- | :----------------------------------------------------------- |
+| `list-paid-apis`  | `list-paid-apis --network mainnet --json` | **DISCOVERY**: Explore available tools                       |
+| `get-api-detail`  | `get-api-detail <ID> --json`              | **REQUIRED**: Fetch schema, sample_res & pricing             |
+| `invoke-paid-api` | `invoke-paid-api <ID> key=val --json`     | **EXECUTION**: Auto-handles payment. Use `key=value` format. |
+| `check`           | `check --network mainnet --json`          | Balance readiness (silenced logs)                            |
+| `request`         | `request <URL> key=val --json`            | Access protected 402 URL (Low-level)                         |
+| `tasks`           | `tasks list`                              | Async progress monitor                                       |
+| `mint`            | `mint --amount 100 --json`                | Get test tokens (Base Sepolia)                               |
 
 ### 🛠️ Global Flags
 
 - `--network <mainnet|testnet>`: Target (Default: testnet).
 - `--confirm-mainnet`: Required for real USDC.
 - `--json`: Required for agent parsing.
+
+---
+
+## 🔧 Troubleshooting & Debugging
+
+- **`402 Handshake Failure`**: Ensure `CLIENT_PRIVATE_KEY` is valid and the wallet has a tiny amount of native ETH for base fee, even on Testnet.
+- **`Insufficient USDC`**: Run `check` to verify your balance. On Testnet, use `mint` to get 1000 USDC instantly.
+- **`Provider Error`**: High RPC latency can skip verification. The CLI v2.7.0 includes 3x retry logic, but ensure your network connection is stable.
+- **`Transaction Pending`**: Wait 5-10 seconds for L2 finality. Use [BaseScan](https://basescan.org) to verify:
+  - Track transactions: `https://basescan.org/tx/<TX_HASH>`
+  - Check wallet status: `https://basescan.org/address/<YOUR_ADDRESS>`
+
+---
+
+## 🛡️ Security & Environment
+
+- **Environment Priority**: ALWAYS prioritize **`mainnet`** for production tasks to ensure access to real-time, high-fidelity data.
+- **Testing & Debug**: Use `testnet` (Base Sepolia) only for initial integration testing, connectivity debugging, or development.
+- **Wallet Safety**: Use a **Burner Wallet** with minimum required funds. Never use a primary vault key.
+- **Required Flags**: Mainnet execution requires the `--confirm-mainnet` flag to prevent accidental spending.
+- **Data Integrity**: Always use the `--json` flag for consistent agentic parsing.
 
 ---
 
