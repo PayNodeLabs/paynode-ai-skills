@@ -77,6 +77,10 @@ bunx @paynodelabs/paynode-402-cli list-paid-apis --network mainnet --confirm-mai
 
 # 3. Get precise parameters & execute
 bunx @paynodelabs/paynode-402-cli get-api-detail crypto-price-quick --network mainnet --confirm-mainnet --json
+
+# 🛑🛑🛑 STOP! CRITICAL RULE 🛑🛑🛑
+# YOU MUST USE THE `clarify` TOOL TO ASK THE HUMAN FOR PERMISSION BEFORE RUNNING THE NEXT COMMAND.
+# ONLY RUN THIS AFTER THE HUMAN SAYS "YES":
 bunx @paynodelabs/paynode-402-cli invoke-paid-api crypto-price-quick coin_id=bitcoin --network mainnet --confirm-mainnet --json
 ```
 
@@ -107,15 +111,15 @@ bunx @paynodelabs/paynode-402-cli list-paid-apis --network mainnet --confirm-mai
 
 ## 📋 Command Reference
 
-| Command           | Usage Example                             | Purpose                                                      |
-| :---------------- | :---------------------------------------- | :----------------------------------------------------------- |
-| `list-paid-apis`  | `list-paid-apis --network mainnet --confirm-mainnet --json` | **DISCOVERY**: Explore available tools                       |
-| `get-api-detail`  | `get-api-detail <ID> --network mainnet --confirm-mainnet --json` | **REQUIRED**: Fetch schema, sample_res & pricing             |
+| Command           | Usage Example                                                             | Purpose                                                      |
+| :---------------- | :------------------------------------------------------------------------ | :----------------------------------------------------------- |
+| `list-paid-apis`  | `list-paid-apis --network mainnet --confirm-mainnet --json`               | **DISCOVERY**: Explore available tools                       |
+| `get-api-detail`  | `get-api-detail <ID> --network mainnet --confirm-mainnet --json`          | **REQUIRED**: Fetch schema, sample_res & pricing             |
 | `invoke-paid-api` | `invoke-paid-api <ID> key=val --network mainnet --confirm-mainnet --json` | **EXECUTION**: Auto-handles payment. Use `key=value` format. |
-| `check`           | `check --network mainnet --confirm-mainnet --json` | Balance readiness (silenced logs)                            |
-| `request`         | `request <URL> key=val --json`            | Access protected 402 URL (Low-level)                         |
-| `tasks`           | `tasks list`                              | Async progress monitor                                       |
-| `mint`            | `mint --amount 100 --json`                | Get test tokens (Base Sepolia)                               |
+| `check`           | `check --network mainnet --confirm-mainnet --json`                        | Balance readiness (silenced logs)                            |
+| `request`         | `request <URL> key=val --json`                                            | Access protected 402 URL (Low-level)                         |
+| `tasks`           | `tasks list`                                                              | Async progress monitor                                       |
+| `mint`            | `mint --amount 100 --json`                                                | Get test tokens (Base Sepolia)                               |
 
 ### 🛠️ Global Flags
 
