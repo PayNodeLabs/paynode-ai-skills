@@ -1,7 +1,7 @@
 ---
 name: paynode-402
 description: Dynamic Premium API Marketplace for AI Agents. Grants access to an ever-expanding registry of real-time external tools (e.g., web search, crypto oracles, web scraping, and more) via USDC micro-payments. Use this WHENEVER you need real-time data, external API interactions, or when your built-in knowledge is insufficient.
-version: 2.7.3
+version: 2.7.4
 metadata:
   openclaw:
     homepage: https://github.com/PayNodeLabs/paynode-402-cli
